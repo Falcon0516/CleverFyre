@@ -1,0 +1,275 @@
+#pragma version 11
+#pragma typetrack false
+
+// algopy.arc4.ARC4Contract.approval_program() -> uint64:
+main:
+    intcblock 0 2 1 32
+    bytecblock 0x151f7c75 0x69633a 0x73723a
+    // smart_contracts/intent_registry/contract.py:5
+    // class IntentRegistry(ARC4Contract):
+    txn NumAppArgs
+    bz main___algopy_default_create@14
+    txn OnCompletion
+    !
+    assert
+    txn ApplicationID
+    assert
+    pushbytess 0xa764735d 0xb9af91ea 0x8e0ef577 0xd98baecd 0xcaa60806 // method "register_session_root(byte[],byte[])void", method "get_session_root(byte[])byte[]", method "register_intent(byte[],byte[],byte[])void", method "get_ipfs_cid(byte[])byte[]", method "has_intent(byte[])bool"
+    txna ApplicationArgs 0
+    match register_session_root get_session_root register_intent get_ipfs_cid has_intent
+    err
+
+main___algopy_default_create@14:
+    txn OnCompletion
+    !
+    txn ApplicationID
+    !
+    &&
+    return
+
+
+// smart_contracts.intent_registry.contract.IntentRegistry.register_session_root[routing]() -> void:
+register_session_root:
+    // smart_contracts/intent_registry/contract.py:28
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 2
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/intent_registry/contract.py:38
+    // assert session_id.length == 32, "session_id must be 32 bytes"
+    dig 1
+    len
+    intc_3 // 32
+    ==
+    assert // session_id must be 32 bytes
+    // smart_contracts/intent_registry/contract.py:39
+    // assert merkle_root.length == 32, "merkle_root must be 32 bytes"
+    dup
+    len
+    intc_3 // 32
+    ==
+    assert // merkle_root must be 32 bytes
+    // smart_contracts/intent_registry/contract.py:40
+    // self.session_roots[session_id] = merkle_root
+    bytec_2 // 0x73723a
+    uncover 2
+    concat
+    dup
+    box_del
+    pop
+    swap
+    box_put
+    // smart_contracts/intent_registry/contract.py:28
+    // @abimethod()
+    intc_2 // 1
+    return
+
+
+// smart_contracts.intent_registry.contract.IntentRegistry.get_session_root[routing]() -> void:
+get_session_root:
+    // smart_contracts/intent_registry/contract.py:42
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/intent_registry/contract.py:45
+    // assert session_id in self.session_roots, "session not found"
+    bytec_2 // 0x73723a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    assert // session not found
+    // smart_contracts/intent_registry/contract.py:46
+    // return self.session_roots[session_id]
+    box_get
+    pop
+    // smart_contracts/intent_registry/contract.py:42
+    // @abimethod()
+    dup
+    len
+    itob
+    extract 6 2
+    swap
+    concat
+    bytec_0 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_2 // 1
+    return
+
+
+// smart_contracts.intent_registry.contract.IntentRegistry.register_intent[routing]() -> void:
+register_intent:
+    // smart_contracts/intent_registry/contract.py:52
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 2
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 3
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    swap
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    // smart_contracts/intent_registry/contract.py:66
+    // assert tx_id_hash.length == 32, "tx_id_hash must be 32 bytes"
+    dig 1
+    len
+    intc_3 // 32
+    ==
+    assert // tx_id_hash must be 32 bytes
+    // smart_contracts/intent_registry/contract.py:67
+    // assert ipfs_cid.length <= 64, "ipfs_cid must be <= 64 bytes"
+    dup
+    len
+    pushint 64
+    <=
+    assert // ipfs_cid must be <= 64 bytes
+    // smart_contracts/intent_registry/contract.py:68-69
+    // # Store CID; merkle_leaf is logged in the note field for indexer queries
+    // self.intent_cids[tx_id_hash] = ipfs_cid
+    bytec_1 // 0x69633a
+    uncover 2
+    concat
+    dup
+    box_del
+    pop
+    swap
+    box_put
+    // smart_contracts/intent_registry/contract.py:52
+    // @abimethod()
+    intc_2 // 1
+    return
+
+
+// smart_contracts.intent_registry.contract.IntentRegistry.get_ipfs_cid[routing]() -> void:
+get_ipfs_cid:
+    // smart_contracts/intent_registry/contract.py:71
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/intent_registry/contract.py:74
+    // assert tx_id_hash in self.intent_cids, "intent not registered"
+    bytec_1 // 0x69633a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    assert // intent not registered
+    // smart_contracts/intent_registry/contract.py:75
+    // return self.intent_cids[tx_id_hash]
+    box_get
+    pop
+    // smart_contracts/intent_registry/contract.py:71
+    // @abimethod()
+    dup
+    len
+    itob
+    extract 6 2
+    swap
+    concat
+    bytec_0 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_2 // 1
+    return
+
+
+// smart_contracts.intent_registry.contract.IntentRegistry.has_intent[routing]() -> void:
+has_intent:
+    // smart_contracts/intent_registry/contract.py:81
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_1 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/intent_registry/contract.py:84
+    // exists = tx_id_hash in self.intent_cids
+    bytec_1 // 0x69633a
+    swap
+    concat
+    box_len
+    bury 1
+    // smart_contracts/intent_registry/contract.py:81
+    // @abimethod()
+    pushbytes 0x00
+    intc_0 // 0
+    uncover 2
+    setbit
+    bytec_0 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_2 // 1
+    return

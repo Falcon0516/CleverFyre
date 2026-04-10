@@ -28,7 +28,7 @@ class PolicyVault(ARC4Contract):
     def renew_with_proof(self, agent: Account, challenge: Bytes, challenge_sig: Bytes, extension_rounds: UInt64) -> None:
         # Verify ed25519 sig of renewal_challenge derived from last 3 payment hashes.
         # Reset missed_renewals = 0. Extend expiry_round by window.
-        policy = self.policies[agent]
+        policy = self.policies[agent].copy()
         pubkey = policy.operator_pubkey
         
         assert op.ed25519verify(challenge, challenge_sig, pubkey), "Invalid renewal signature"
@@ -44,7 +44,7 @@ class PolicyVault(ARC4Contract):
     def check_and_enforce(self, agent: Account, amount: UInt64) -> UInt64:
         # Returns: 0=allowed, 1=warn(capped 1 ALGO), 2=capped(0.1 ALGO), 3=fully frozen
         # Graduated: missed_renewals 1 -> tier 1, 2 -> tier 2, 3+ -> tier 3
-        policy = self.policies[agent]
+        policy = self.policies[agent].copy()
         
         if Global.round >= policy.expiry_round:
             return UInt64(3)
@@ -63,7 +63,7 @@ class PolicyVault(ARC4Contract):
     def tick_missed_renewal(self, agent: Account) -> None:
         # Called by backend cron each epoch if no renewal seen.
         # Increments missed_renewals. Updates spend_cap_tier.
-        policy = self.policies[agent]
+        policy = self.policies[agent].copy()
         missed = policy.missed_renewals + 1
         tier = UInt64(0)
         
@@ -84,7 +84,7 @@ class PolicyVault(ARC4Contract):
     @abimethod()
     def get_policy_status(self, agent: Account) -> UInt64:
         # Returns current tier for this agent.
-        policy = self.policies[agent]
+        policy = self.policies[agent].copy()
         
         if Global.round >= policy.expiry_round:
             return UInt64(3)

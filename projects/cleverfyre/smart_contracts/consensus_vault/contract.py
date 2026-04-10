@@ -63,7 +63,7 @@ class ConsensusVault(ARC4Contract):
         assert escrow_id.length == 32, "escrow_id must be 32 bytes"
         assert required >= UInt64(1), "required must be >= 1"
 
-        _, exists = self.consensus_records.maybe(payment_id)
+        exists = payment_id in self.consensus_records
         assert not exists, "consensus already open for this payment_id"
 
         self.consensus_records[payment_id] = ConsensusRecord(
@@ -84,13 +84,14 @@ class ConsensusVault(ARC4Contract):
         assert payment_id.length == 32, "payment_id must be 32 bytes"
         assert consent_hash.length == 32, "consent_hash must be 32 bytes"
 
-        record, exists = self.consensus_records.maybe(payment_id)
+        exists = payment_id in self.consensus_records
         assert exists, "no consensus record for this payment_id"
+        record = self.consensus_records[payment_id].copy()
         assert record.resolved == UInt64(0), "consensus already resolved"
         assert Global.round <= record.deadline_round, "consensus deadline passed"
 
         # Use consent_hash as dedup key (peer can't vote twice with same hash)
-        _, already_voted = self.submitted.maybe(consent_hash)
+        already_voted = consent_hash in self.submitted
         assert not already_voted, "this consent already submitted"
 
         self.submitted[consent_hash] = UInt64(1)
@@ -110,8 +111,9 @@ class ConsensusVault(ARC4Contract):
         Returns 1 if consensus was reached, 0 if still waiting.
         The SDK layer then calls SentinelEscrow.release() in the same atomic group.
         """
-        record, exists = self.consensus_records.maybe(payment_id)
+        exists = payment_id in self.consensus_records
         assert exists, "no consensus record for this payment_id"
+        record = self.consensus_records[payment_id].copy()
         assert record.resolved == UInt64(0), "already resolved"
 
         if record.collected >= record.required_approvals:
@@ -131,8 +133,9 @@ class ConsensusVault(ARC4Contract):
         After deadline passes, mark resolved=2 (timed out / rejected).
         SDK layer then calls SentinelEscrow.refund() atomically.
         """
-        record, exists = self.consensus_records.maybe(payment_id)
+        exists = payment_id in self.consensus_records
         assert exists, "no consensus record for this payment_id"
+        record = self.consensus_records[payment_id].copy()
         assert record.resolved == UInt64(0), "already resolved"
         assert Global.round > record.deadline_round, "deadline not yet passed"
 
@@ -151,13 +154,15 @@ class ConsensusVault(ARC4Contract):
     @abimethod()
     def get_consensus_status(self, payment_id: Bytes) -> UInt64:
         """Returns resolved field: 0=pending, 1=executed, 2=rejected/timed-out."""
-        record, exists = self.consensus_records.maybe(payment_id)
+        exists = payment_id in self.consensus_records
         assert exists, "no consensus record for this payment_id"
+        record = self.consensus_records[payment_id].copy()
         return record.resolved
 
     @abimethod()
     def get_collected(self, payment_id: Bytes) -> UInt64:
         """Returns how many consents have been collected so far."""
-        record, exists = self.consensus_records.maybe(payment_id)
+        exists = payment_id in self.consensus_records
         assert exists, "no consensus record"
+        record = self.consensus_records[payment_id].copy()
         return record.collected

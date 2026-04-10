@@ -124,8 +124,9 @@ class SentinelEscrow(ARC4Contract):
         Emits b"x402:axiom:RELEASE" in inner-txn note.
         """
         assert escrow_id.length == 32, "invalid escrow_id"
-        record, exists = self.escrows.maybe(escrow_id)
+        exists = escrow_id in self.escrows
         assert exists, "escrow not found"
+        record = self.escrows[escrow_id].copy()
         assert record.status == UInt64(0), "escrow already settled"
         assert record.quarantine_flag == UInt64(0), "escrow is quarantined"
 
@@ -156,8 +157,9 @@ class SentinelEscrow(ARC4Contract):
         Emits b"x402:axiom:REFUND" in inner-txn note.
         """
         assert escrow_id.length == 32, "invalid escrow_id"
-        record, exists = self.escrows.maybe(escrow_id)
+        exists = escrow_id in self.escrows
         assert exists, "escrow not found"
+        record = self.escrows[escrow_id].copy()
         assert record.status == UInt64(0), "escrow already settled"
 
         # Allow refund if: deadline passed OR oracle explicitly calls
@@ -198,8 +200,9 @@ class SentinelEscrow(ARC4Contract):
           6 = policy expired
         """
         assert escrow_id.length == 32, "invalid escrow_id"
-        record, exists = self.escrows.maybe(escrow_id)
+        exists = escrow_id in self.escrows
         assert exists, "escrow not found"
+        record = self.escrows[escrow_id].copy()
         assert record.status == UInt64(0), "escrow already settled"
 
         self.escrows[escrow_id] = EscrowRecord(
@@ -230,8 +233,9 @@ class SentinelEscrow(ARC4Contract):
         Must be called by the contract creator (org admin).
         """
         assert Txn.sender == Global.creator_address, "only admin can resolve"
-        record, exists = self.escrows.maybe(escrow_id)
+        exists = escrow_id in self.escrows
         assert exists, "escrow not found"
+        record = self.escrows[escrow_id].copy()
         assert record.status == UInt64(3), "escrow is not quarantined"
 
         # Clear quarantine flag so release/refund can proceed
@@ -258,13 +262,15 @@ class SentinelEscrow(ARC4Contract):
     @abimethod()
     def get_escrow_status(self, escrow_id: Bytes) -> UInt64:
         """Returns status: 0=open, 1=released, 2=refunded, 3=quarantined."""
-        record, exists = self.escrows.maybe(escrow_id)
+        exists = escrow_id in self.escrows
         assert exists, "escrow not found"
+        record = self.escrows[escrow_id].copy()
         return record.status
 
     @abimethod()
     def get_escrow_amount(self, escrow_id: Bytes) -> UInt64:
         """Returns the escrowed microALGO amount."""
-        record, exists = self.escrows.maybe(escrow_id)
+        exists = escrow_id in self.escrows
         assert exists, "escrow not found"
+        record = self.escrows[escrow_id].copy()
         return record.amount

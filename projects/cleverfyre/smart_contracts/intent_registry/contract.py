@@ -42,7 +42,7 @@ class IntentRegistry(ARC4Contract):
     @abimethod()
     def get_session_root(self, session_id: Bytes) -> Bytes:
         """Return the committed Merkle root for a session."""
-        assert self.session_roots.maybe(session_id)[1], "session not found"
+        assert session_id in self.session_roots, "session not found"
         return self.session_roots[session_id]
 
     # ------------------------------------------------------------------ #
@@ -71,7 +71,7 @@ class IntentRegistry(ARC4Contract):
     @abimethod()
     def get_ipfs_cid(self, tx_id_hash: Bytes) -> Bytes:
         """Retrieve the IPFS CID for an intent, given the hash of its tx_id."""
-        assert self.intent_cids.maybe(tx_id_hash)[1], "intent not registered"
+        assert tx_id_hash in self.intent_cids, "intent not registered"
         return self.intent_cids[tx_id_hash]
 
     # ------------------------------------------------------------------ #
@@ -81,5 +81,5 @@ class IntentRegistry(ARC4Contract):
     @abimethod()
     def has_intent(self, tx_id_hash: Bytes) -> bool:
         """Returns True if the intent has been registered."""
-        _, exists = self.intent_cids.maybe(tx_id_hash)
+        exists = tx_id_hash in self.intent_cids
         return exists

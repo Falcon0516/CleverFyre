@@ -1,0 +1,709 @@
+#pragma version 11
+#pragma typetrack false
+
+// algopy.arc4.ARC4Contract.approval_program() -> uint64:
+main:
+    intcblock 1 32 0 8 1000000
+    bytecblock 0x7265703a 0x76633a 0x151f7c75 "sentinel_app_id" "policy_vault_app_id"
+    txn ApplicationID
+    bnz main_after_if_else@2
+    // smart_contracts/reputation_ledger/contract.py:69-70
+    // # Trusted caller app IDs
+    // self.sentinel_app_id = UInt64(0)
+    bytec_3 // "sentinel_app_id"
+    intc_2 // 0
+    app_global_put
+    // smart_contracts/reputation_ledger/contract.py:71
+    // self.policy_vault_app_id = UInt64(0)
+    bytec 4 // "policy_vault_app_id"
+    intc_2 // 0
+    app_global_put
+
+main_after_if_else@2:
+    // smart_contracts/reputation_ledger/contract.py:53
+    // class ReputationLedger(ARC4Contract):
+    txn OnCompletion
+    !
+    assert
+    txn ApplicationID
+    bz main_create_NoOp@15
+    pushbytess 0xaa835ab5 0xf431fb3d 0xec887f20 0xf03f458b 0x3ea56aac 0x463f1127 0x205b720c 0xc9707392 0x941a2d21 // method "register_agent(address)void", method "update_score(address,uint64,uint64)void", method "record_drift(address)void", method "vouch(address,address)void", method "slash_voucher(address,address)void", method "reward_voucher(address,address)void", method "get_score(address)uint64", method "get_tier(address)uint64", method "get_drift_events(address)uint64"
+    txna ApplicationArgs 0
+    match register_agent update_score record_drift vouch slash_voucher reward_voucher get_score get_tier get_drift_events
+    err
+
+main_create_NoOp@15:
+    // smart_contracts/reputation_ledger/contract.py:53
+    // class ReputationLedger(ARC4Contract):
+    pushbytes 0x9479ff63 // method "create(uint64,uint64)void"
+    txna ApplicationArgs 0
+    match create
+    err
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.create[routing]() -> void:
+create:
+    // smart_contracts/reputation_ledger/contract.py:73
+    // @abimethod(create="require")
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // smart_contracts/reputation_ledger/contract.py:80
+    // self.sentinel_app_id = sentinel_escrow_app_id
+    bytec_3 // "sentinel_app_id"
+    uncover 2
+    app_global_put
+    // smart_contracts/reputation_ledger/contract.py:81
+    // self.policy_vault_app_id = policy_vault_app_id
+    bytec 4 // "policy_vault_app_id"
+    swap
+    app_global_put
+    // smart_contracts/reputation_ledger/contract.py:73
+    // @abimethod(create="require")
+    intc_0 // 1
+    return
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.register_agent[routing]() -> void:
+register_agent:
+    // smart_contracts/reputation_ledger/contract.py:87
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:93
+    // exists = agent in self.rep_records
+    bytec_0 // 0x7265703a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:94
+    // assert not exists, "agent already registered"
+    !
+    assert // agent already registered
+    // smart_contracts/reputation_ledger/contract.py:95-98
+    // self.rep_records[agent] = ReputationRecord(
+    //     score=UInt64(500),
+    //     drift_events=UInt64(0),
+    // )
+    pushbytes 0x00000000000001f40000000000000000
+    box_put
+    // smart_contracts/reputation_ledger/contract.py:87
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.update_score[routing]() -> void:
+update_score:
+    pushbytes ""
+    // smart_contracts/reputation_ledger/contract.py:104
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    swap
+    txna ApplicationArgs 3
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // smart_contracts/reputation_ledger/contract.py:121
+    // exists = agent in self.rep_records
+    bytec_0 // 0x7265703a
+    uncover 2
+    concat
+    dup
+    cover 2
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:122
+    // assert exists, "agent not registered"
+    assert // agent not registered
+    // smart_contracts/reputation_ledger/contract.py:123
+    // record = self.rep_records[agent].copy()
+    box_get
+    pop
+    dup
+    cover 2
+    // smart_contracts/reputation_ledger/contract.py:125
+    // current = record.score
+    intc_2 // 0
+    extract_uint64
+    swap
+    // smart_contracts/reputation_ledger/contract.py:127
+    // if is_negative == UInt64(1):
+    intc_0 // 1
+    ==
+    bz update_score_else_body@6
+    // smart_contracts/reputation_ledger/contract.py:128
+    // if current >= delta:
+    dup
+    dig 4
+    >=
+    bz update_score_else_body@4
+    // smart_contracts/reputation_ledger/contract.py:129
+    // new_score = current - delta
+    dup
+    dig 4
+    -
+    bury 5
+
+update_score_after_if_else@9:
+    // smart_contracts/reputation_ledger/contract.py:139
+    // drift_events=record.drift_events,
+    dig 1
+    extract 8 8
+    // smart_contracts/reputation_ledger/contract.py:137-140
+    // self.rep_records[agent] = ReputationRecord(
+    //     score=new_score,
+    //     drift_events=record.drift_events,
+    // )
+    dig 5
+    itob
+    swap
+    concat
+    dig 3
+    swap
+    box_put
+    // smart_contracts/reputation_ledger/contract.py:104
+    // @abimethod()
+    intc_0 // 1
+    return
+
+update_score_else_body@4:
+    // smart_contracts/reputation_ledger/contract.py:131
+    // new_score = UInt64(0)
+    intc_2 // 0
+    bury 5
+    b update_score_after_if_else@9
+
+update_score_else_body@6:
+    // smart_contracts/reputation_ledger/contract.py:133
+    // new_score = current + delta
+    dup
+    dig 4
+    +
+    dup
+    bury 6
+    // smart_contracts/reputation_ledger/contract.py:134
+    // if new_score > UInt64(1000):
+    pushint 1000
+    >
+    bz update_score_after_if_else@9
+    // smart_contracts/reputation_ledger/contract.py:135
+    // new_score = UInt64(1000)
+    pushint 1000
+    bury 5
+    b update_score_after_if_else@9
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.record_drift[routing]() -> void:
+record_drift:
+    // smart_contracts/reputation_ledger/contract.py:142
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:145
+    // exists = agent in self.rep_records
+    bytec_0 // 0x7265703a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:146
+    // assert exists, "agent not registered"
+    assert // agent not registered
+    // smart_contracts/reputation_ledger/contract.py:147
+    // record = self.rep_records[agent].copy()
+    dup
+    box_get
+    pop
+    // smart_contracts/reputation_ledger/contract.py:149
+    // score=record.score,
+    dup
+    extract 0 8
+    // smart_contracts/reputation_ledger/contract.py:150
+    // drift_events=record.drift_events + UInt64(1),
+    swap
+    intc_3 // 8
+    extract_uint64
+    intc_0 // 1
+    +
+    // smart_contracts/reputation_ledger/contract.py:148-151
+    // self.rep_records[agent] = ReputationRecord(
+    //     score=record.score,
+    //     drift_events=record.drift_events + UInt64(1),
+    // )
+    itob
+    concat
+    box_put
+    // smart_contracts/reputation_ledger/contract.py:142
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.vouch[routing]() -> void:
+vouch:
+    // smart_contracts/reputation_ledger/contract.py:157
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:167
+    // vouch_key = op.sha256(voucher.bytes + vouchee.bytes)
+    concat
+    sha256
+    // smart_contracts/reputation_ledger/contract.py:168
+    // already_vouching = vouch_key in self.vouch_stakes
+    bytec_1 // 0x76633a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:169
+    // assert not already_vouching, "already vouching for this agent"
+    !
+    assert // already vouching for this agent
+    // smart_contracts/reputation_ledger/contract.py:171-172
+    // # Verify attached 1 ALGO payment
+    // assert Txn.fee >= UInt64(VOUCH_AMOUNT_MICROALGO), "must attach 1 ALGO to vouch"
+    txn Fee
+    intc 4 // 1000000
+    >=
+    assert // must attach 1 ALGO to vouch
+    // smart_contracts/reputation_ledger/contract.py:178
+    // round_created=Global.round,
+    global Round
+    // smart_contracts/reputation_ledger/contract.py:177
+    // stake_amount=UInt64(VOUCH_AMOUNT_MICROALGO),
+    intc 4 // 1000000
+    // smart_contracts/reputation_ledger/contract.py:176-179
+    // self.vouch_stakes[vouch_key] = VouchRecord(
+    //     stake_amount=UInt64(VOUCH_AMOUNT_MICROALGO),
+    //     round_created=Global.round,
+    // )
+    itob
+    swap
+    itob
+    concat
+    box_put
+    // smart_contracts/reputation_ledger/contract.py:157
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.slash_voucher[routing]() -> void:
+slash_voucher:
+    // smart_contracts/reputation_ledger/contract.py:181
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:187
+    // assert Txn.sender == Global.creator_address, "only oracle/admin can slash"
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // only oracle/admin can slash
+    // smart_contracts/reputation_ledger/contract.py:188
+    // vouch_key = op.sha256(voucher.bytes + vouchee.bytes)
+    dig 1
+    swap
+    concat
+    sha256
+    // smart_contracts/reputation_ledger/contract.py:189
+    // exists = vouch_key in self.vouch_stakes
+    bytec_1 // 0x76633a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:190
+    // assert exists, "vouch record not found"
+    assert // vouch record not found
+    // smart_contracts/reputation_ledger/contract.py:191
+    // stake = self.vouch_stakes[vouch_key].copy()
+    dup
+    box_get
+    pop
+    // smart_contracts/reputation_ledger/contract.py:193
+    // slash_amount = stake.stake_amount // UInt64(2)
+    intc_2 // 0
+    extract_uint64
+    dup
+    pushint 2
+    /
+    // smart_contracts/reputation_ledger/contract.py:194
+    // refund_amount = stake.stake_amount - slash_amount
+    -
+    // smart_contracts/reputation_ledger/contract.py:196-202
+    // # Refund half to voucher
+    // itxn.Payment(
+    //     receiver=voucher,
+    //     amount=refund_amount,
+    //     note=b"x402:axiom:SLASH",
+    //     fee=UInt64(0),
+    // ).submit()
+    itxn_begin
+    // smart_contracts/reputation_ledger/contract.py:200
+    // note=b"x402:axiom:SLASH",
+    pushbytes 0x783430323a6178696f6d3a534c415348
+    itxn_field Note
+    itxn_field Amount
+    swap
+    itxn_field Receiver
+    // smart_contracts/reputation_ledger/contract.py:196-197
+    // # Refund half to voucher
+    // itxn.Payment(
+    intc_0 // pay
+    itxn_field TypeEnum
+    // smart_contracts/reputation_ledger/contract.py:201
+    // fee=UInt64(0),
+    intc_2 // 0
+    itxn_field Fee
+    // smart_contracts/reputation_ledger/contract.py:196-202
+    // # Refund half to voucher
+    // itxn.Payment(
+    //     receiver=voucher,
+    //     amount=refund_amount,
+    //     note=b"x402:axiom:SLASH",
+    //     fee=UInt64(0),
+    // ).submit()
+    itxn_submit
+    // smart_contracts/reputation_ledger/contract.py:204
+    // del self.vouch_stakes[vouch_key]
+    box_del
+    pop
+    // smart_contracts/reputation_ledger/contract.py:181
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.reward_voucher[routing]() -> void:
+reward_voucher:
+    // smart_contracts/reputation_ledger/contract.py:206
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:212
+    // assert Txn.sender == Global.creator_address, "only oracle/admin can reward"
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // only oracle/admin can reward
+    // smart_contracts/reputation_ledger/contract.py:213
+    // vouch_key = op.sha256(voucher.bytes + vouchee.bytes)
+    dig 1
+    swap
+    concat
+    sha256
+    // smart_contracts/reputation_ledger/contract.py:214
+    // exists = vouch_key in self.vouch_stakes
+    bytec_1 // 0x76633a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:215
+    // assert exists, "vouch record not found"
+    assert // vouch record not found
+    // smart_contracts/reputation_ledger/contract.py:216
+    // stake = self.vouch_stakes[vouch_key].copy()
+    dup
+    box_get
+    pop
+    // smart_contracts/reputation_ledger/contract.py:218
+    // bonus = stake.stake_amount // UInt64(10)
+    intc_2 // 0
+    extract_uint64
+    dup
+    pushint 10
+    /
+    // smart_contracts/reputation_ledger/contract.py:219
+    // reward = stake.stake_amount + bonus
+    +
+    // smart_contracts/reputation_ledger/contract.py:221-226
+    // itxn.Payment(
+    //     receiver=voucher,
+    //     amount=reward,
+    //     note=b"x402:axiom:REWARD",
+    //     fee=UInt64(0),
+    // ).submit()
+    itxn_begin
+    // smart_contracts/reputation_ledger/contract.py:224
+    // note=b"x402:axiom:REWARD",
+    pushbytes 0x783430323a6178696f6d3a524557415244
+    itxn_field Note
+    itxn_field Amount
+    swap
+    itxn_field Receiver
+    // smart_contracts/reputation_ledger/contract.py:221
+    // itxn.Payment(
+    intc_0 // pay
+    itxn_field TypeEnum
+    // smart_contracts/reputation_ledger/contract.py:225
+    // fee=UInt64(0),
+    intc_2 // 0
+    itxn_field Fee
+    // smart_contracts/reputation_ledger/contract.py:221-226
+    // itxn.Payment(
+    //     receiver=voucher,
+    //     amount=reward,
+    //     note=b"x402:axiom:REWARD",
+    //     fee=UInt64(0),
+    // ).submit()
+    itxn_submit
+    // smart_contracts/reputation_ledger/contract.py:228
+    // del self.vouch_stakes[vouch_key]
+    box_del
+    pop
+    // smart_contracts/reputation_ledger/contract.py:206
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.get_score[routing]() -> void:
+get_score:
+    // smart_contracts/reputation_ledger/contract.py:234
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:237
+    // exists = agent in self.rep_records
+    bytec_0 // 0x7265703a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:238
+    // assert exists, "agent not registered"
+    assert // agent not registered
+    // smart_contracts/reputation_ledger/contract.py:239
+    // record = self.rep_records[agent].copy()
+    box_get
+    pop
+    // smart_contracts/reputation_ledger/contract.py:240
+    // return record.score
+    extract 0 8
+    // smart_contracts/reputation_ledger/contract.py:234
+    // @abimethod()
+    bytec_2 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_0 // 1
+    return
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.get_tier[routing]() -> void:
+get_tier:
+    // smart_contracts/reputation_ledger/contract.py:242
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:247
+    // exists = agent in self.rep_records
+    bytec_0 // 0x7265703a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:248
+    // assert exists, "agent not registered"
+    assert // agent not registered
+    // smart_contracts/reputation_ledger/contract.py:249
+    // record = self.rep_records[agent].copy()
+    box_get
+    pop
+    // smart_contracts/reputation_ledger/contract.py:250
+    // score = record.score
+    intc_2 // 0
+    extract_uint64
+    dup
+    // smart_contracts/reputation_ledger/contract.py:252
+    // if score >= UInt64(TIER_EXCELLENT):
+    pushint 800
+    >=
+    bz get_tier_after_if_else@3
+    // smart_contracts/reputation_ledger/contract.py:253
+    // return UInt64(4)
+    pushint 4
+
+get_tier_after_inlined_smart_contracts.reputation_ledger.contract.ReputationLedger.get_tier@10:
+    // smart_contracts/reputation_ledger/contract.py:242
+    // @abimethod()
+    itob
+    bytec_2 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_0 // 1
+    return
+
+get_tier_after_if_else@3:
+    // smart_contracts/reputation_ledger/contract.py:254
+    // if score >= UInt64(TIER_GOOD):
+    dup
+    pushint 600
+    >=
+    bz get_tier_after_if_else@5
+    // smart_contracts/reputation_ledger/contract.py:255
+    // return UInt64(3)
+    pushint 3
+    // smart_contracts/reputation_ledger/contract.py:242
+    // @abimethod()
+    b get_tier_after_inlined_smart_contracts.reputation_ledger.contract.ReputationLedger.get_tier@10
+
+get_tier_after_if_else@5:
+    // smart_contracts/reputation_ledger/contract.py:256
+    // if score >= UInt64(TIER_CAUTION):
+    dup
+    pushint 400
+    >=
+    bz get_tier_after_if_else@7
+    // smart_contracts/reputation_ledger/contract.py:257
+    // return UInt64(2)
+    pushint 2
+    // smart_contracts/reputation_ledger/contract.py:242
+    // @abimethod()
+    b get_tier_after_inlined_smart_contracts.reputation_ledger.contract.ReputationLedger.get_tier@10
+
+get_tier_after_if_else@7:
+    // smart_contracts/reputation_ledger/contract.py:258
+    // if score >= UInt64(TIER_RESTRICTED):
+    dup
+    pushint 200
+    >=
+    bz get_tier_after_if_else@9
+    // smart_contracts/reputation_ledger/contract.py:259
+    // return UInt64(1)
+    intc_0 // 1
+    // smart_contracts/reputation_ledger/contract.py:242
+    // @abimethod()
+    b get_tier_after_inlined_smart_contracts.reputation_ledger.contract.ReputationLedger.get_tier@10
+
+get_tier_after_if_else@9:
+    // smart_contracts/reputation_ledger/contract.py:260
+    // return UInt64(0)
+    intc_2 // 0
+    // smart_contracts/reputation_ledger/contract.py:242
+    // @abimethod()
+    b get_tier_after_inlined_smart_contracts.reputation_ledger.contract.ReputationLedger.get_tier@10
+
+
+// smart_contracts.reputation_ledger.contract.ReputationLedger.get_drift_events[routing]() -> void:
+get_drift_events:
+    // smart_contracts/reputation_ledger/contract.py:262
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/reputation_ledger/contract.py:265
+    // exists = agent in self.rep_records
+    bytec_0 // 0x7265703a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/reputation_ledger/contract.py:266
+    // assert exists, "agent not registered"
+    assert // agent not registered
+    // smart_contracts/reputation_ledger/contract.py:267
+    // record = self.rep_records[agent].copy()
+    box_get
+    pop
+    // smart_contracts/reputation_ledger/contract.py:268
+    // return record.drift_events
+    extract 8 8
+    // smart_contracts/reputation_ledger/contract.py:262
+    // @abimethod()
+    bytec_2 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_0 // 1
+    return

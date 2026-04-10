@@ -35,19 +35,19 @@ class VouchRecord(Struct):
 
 
 # Score deltas (Section 4 of playbook)
-SCORE_GOOD_PAYMENT   = UInt64(5)
-SCORE_ANOMALY_PASS   = UInt64(10)
-SCORE_ANOMALY_FAIL   = UInt64(50)
-SCORE_DMS_BREACH     = UInt64(100)
-SCORE_PROMPT_INJECT  = UInt64(200)
+SCORE_GOOD_PAYMENT   = 5
+SCORE_ANOMALY_PASS   = 10
+SCORE_ANOMALY_FAIL   = 50
+SCORE_DMS_BREACH     = 100
+SCORE_PROMPT_INJECT  = 200
 
 # Tier thresholds
-TIER_EXCELLENT   = UInt64(800)
-TIER_GOOD        = UInt64(600)
-TIER_CAUTION     = UInt64(400)
-TIER_RESTRICTED  = UInt64(200)
+TIER_EXCELLENT   = 800
+TIER_GOOD        = 600
+TIER_CAUTION     = 400
+TIER_RESTRICTED  = 200
 
-VOUCH_AMOUNT_MICROALGO = UInt64(1_000_000)  # 1 ALGO to vouch
+VOUCH_AMOUNT_MICROALGO = 1_000_000  # 1 ALGO to vouch
 
 
 class ReputationLedger(ARC4Contract):
@@ -90,7 +90,7 @@ class ReputationLedger(ARC4Contract):
         Create a reputation record with neutral score = 500.
         Callable by anyone (idempotent guard inside).
         """
-        _, exists = self.rep_records.maybe(agent)
+        exists = agent in self.rep_records
         assert not exists, "agent already registered"
         self.rep_records[agent] = ReputationRecord(
             score=UInt64(500),
@@ -118,8 +118,9 @@ class ReputationLedger(ARC4Contract):
         ONLY callable by SentinelEscrow or PolicyVault app (via inner txn).
         On-chain caller verification uses Txn.sender being the trusted app address.
         """
-        record, exists = self.rep_records.maybe(agent)
+        exists = agent in self.rep_records
         assert exists, "agent not registered"
+        record = self.rep_records[agent].copy()
 
         current = record.score
 
@@ -141,8 +142,9 @@ class ReputationLedger(ARC4Contract):
     @abimethod()
     def record_drift(self, agent: Account) -> None:
         """Increment drift_events counter for a flagged agent."""
-        record, exists = self.rep_records.maybe(agent)
+        exists = agent in self.rep_records
         assert exists, "agent not registered"
+        record = self.rep_records[agent].copy()
         self.rep_records[agent] = ReputationRecord(
             score=record.score,
             drift_events=record.drift_events + UInt64(1),
@@ -163,14 +165,16 @@ class ReputationLedger(ARC4Contract):
           - vouchee score rises above 800 → return stake + 10% bonus.
         """
         vouch_key = op.sha256(voucher.bytes + vouchee.bytes)
-        _, already_vouching = self.vouch_stakes.maybe(vouch_key)
+        already_vouching = vouch_key in self.vouch_stakes
         assert not already_vouching, "already vouching for this agent"
 
         # Verify attached 1 ALGO payment
-        assert Txn.fee >= VOUCH_AMOUNT_MICROALGO, "must attach 1 ALGO to vouch"
+        assert Txn.fee >= UInt64(VOUCH_AMOUNT_MICROALGO), "must attach 1 ALGO to vouch"
+        # Since VOUCH_AMOUNT_MICROALGO is a plain integer, wrap it or use it as a literal.
+        # However, the constructor might be strict.
 
         self.vouch_stakes[vouch_key] = VouchRecord(
-            stake_amount=VOUCH_AMOUNT_MICROALGO,
+            stake_amount=UInt64(VOUCH_AMOUNT_MICROALGO),
             round_created=Global.round,
         )
 
@@ -182,10 +186,11 @@ class ReputationLedger(ARC4Contract):
         """
         assert Txn.sender == Global.creator_address, "only oracle/admin can slash"
         vouch_key = op.sha256(voucher.bytes + vouchee.bytes)
-        stake, exists = self.vouch_stakes.maybe(vouch_key)
+        exists = vouch_key in self.vouch_stakes
         assert exists, "vouch record not found"
+        stake = self.vouch_stakes[vouch_key].copy()
 
-        slash_amount = stake.stake_amount / UInt64(2)
+        slash_amount = stake.stake_amount // UInt64(2)
         refund_amount = stake.stake_amount - slash_amount
 
         # Refund half to voucher
@@ -206,10 +211,11 @@ class ReputationLedger(ARC4Contract):
         """
         assert Txn.sender == Global.creator_address, "only oracle/admin can reward"
         vouch_key = op.sha256(voucher.bytes + vouchee.bytes)
-        stake, exists = self.vouch_stakes.maybe(vouch_key)
+        exists = vouch_key in self.vouch_stakes
         assert exists, "vouch record not found"
+        stake = self.vouch_stakes[vouch_key].copy()
 
-        bonus = stake.stake_amount / UInt64(10)
+        bonus = stake.stake_amount // UInt64(10)
         reward = stake.stake_amount + bonus
 
         itxn.Payment(
@@ -228,8 +234,9 @@ class ReputationLedger(ARC4Contract):
     @abimethod()
     def get_score(self, agent: Account) -> UInt64:
         """Return the current reputation score for an agent."""
-        record, exists = self.rep_records.maybe(agent)
+        exists = agent in self.rep_records
         assert exists, "agent not registered"
+        record = self.rep_records[agent].copy()
         return record.score
 
     @abimethod()
@@ -237,23 +244,25 @@ class ReputationLedger(ARC4Contract):
         """
         Returns tier: 0=BLACKLISTED, 1=RESTRICTED, 2=CAUTION, 3=GOOD, 4=EXCELLENT.
         """
-        record, exists = self.rep_records.maybe(agent)
+        exists = agent in self.rep_records
         assert exists, "agent not registered"
+        record = self.rep_records[agent].copy()
         score = record.score
 
-        if score >= TIER_EXCELLENT:
+        if score >= UInt64(TIER_EXCELLENT):
             return UInt64(4)
-        if score >= TIER_GOOD:
+        if score >= UInt64(TIER_GOOD):
             return UInt64(3)
-        if score >= TIER_CAUTION:
+        if score >= UInt64(TIER_CAUTION):
             return UInt64(2)
-        if score >= TIER_RESTRICTED:
+        if score >= UInt64(TIER_RESTRICTED):
             return UInt64(1)
         return UInt64(0)
 
     @abimethod()
     def get_drift_events(self, agent: Account) -> UInt64:
         """Return total flagged drift events for forensic audit."""
-        record, exists = self.rep_records.maybe(agent)
+        exists = agent in self.rep_records
         assert exists, "agent not registered"
+        record = self.rep_records[agent].copy()
         return record.drift_events

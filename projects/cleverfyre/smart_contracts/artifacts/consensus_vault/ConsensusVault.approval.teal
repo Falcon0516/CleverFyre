@@ -1,0 +1,710 @@
+#pragma version 11
+#pragma typetrack false
+
+// algopy.arc4.ARC4Contract.approval_program() -> uint64:
+main:
+    intcblock 2 8 0 1
+    bytecblock 0x63763a 0x0022 0x151f7c75 "sentinel_app_id"
+    txn ApplicationID
+    bnz main_after_if_else@2
+    // smart_contracts/consensus_vault/contract.py:39-40
+    // # Trusted sentinel app (set on create)
+    // self.sentinel_app_id = UInt64(0)
+    bytec_3 // "sentinel_app_id"
+    intc_2 // 0
+    app_global_put
+
+main_after_if_else@2:
+    // smart_contracts/consensus_vault/contract.py:22
+    // class ConsensusVault(ARC4Contract):
+    txn OnCompletion
+    !
+    assert
+    txn ApplicationID
+    bz main_create_NoOp@12
+    pushbytess 0x3b97be49 0x44dbfd9e 0x1af67723 0x08362100 0x74e7304d 0xa73f5937 // method "open_consensus(byte[],byte[],uint64)void", method "submit_consent(byte[],byte[])void", method "execute_if_consensus(byte[])uint64", method "timeout_reject(byte[])void", method "get_consensus_status(byte[])uint64", method "get_collected(byte[])uint64"
+    txna ApplicationArgs 0
+    match open_consensus submit_consent execute_if_consensus timeout_reject get_consensus_status get_collected
+    err
+
+main_create_NoOp@12:
+    // smart_contracts/consensus_vault/contract.py:22
+    // class ConsensusVault(ARC4Contract):
+    pushbytes 0x240d2f67 // method "create(uint64)void"
+    txna ApplicationArgs 0
+    match create
+    err
+
+
+// smart_contracts.consensus_vault.contract.ConsensusVault.create[routing]() -> void:
+create:
+    // smart_contracts/consensus_vault/contract.py:42
+    // @abimethod(create="require")
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // smart_contracts/consensus_vault/contract.py:44
+    // self.sentinel_app_id = sentinel_escrow_app_id
+    bytec_3 // "sentinel_app_id"
+    swap
+    app_global_put
+    // smart_contracts/consensus_vault/contract.py:42
+    // @abimethod(create="require")
+    intc_3 // 1
+    return
+
+
+// smart_contracts.consensus_vault.contract.ConsensusVault.open_consensus[routing]() -> void:
+open_consensus:
+    // smart_contracts/consensus_vault/contract.py:50
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 2
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 3
+    dup
+    len
+    intc_1 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    btoi
+    // smart_contracts/consensus_vault/contract.py:62
+    // assert payment_id.length == 32, "payment_id must be 32 bytes"
+    dig 2
+    len
+    pushint 32
+    ==
+    assert // payment_id must be 32 bytes
+    // smart_contracts/consensus_vault/contract.py:63
+    // assert escrow_id.length == 32, "escrow_id must be 32 bytes"
+    dig 1
+    len
+    dup
+    pushint 32
+    ==
+    assert // escrow_id must be 32 bytes
+    // smart_contracts/consensus_vault/contract.py:64
+    // assert required >= UInt64(1), "required must be >= 1"
+    dig 1
+    assert // required must be >= 1
+    // smart_contracts/consensus_vault/contract.py:66
+    // exists = payment_id in self.consensus_records
+    bytec_0 // 0x63763a
+    uncover 4
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/consensus_vault/contract.py:67
+    // assert not exists, "consensus already open for this payment_id"
+    !
+    assert // consensus already open for this payment_id
+    // smart_contracts/consensus_vault/contract.py:73
+    // deadline_round=Global.round + UInt64(30),
+    global Round
+    pushint 30
+    +
+    // smart_contracts/consensus_vault/contract.py:69-75
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=escrow_id,
+    //     required_approvals=required,
+    //     collected=UInt64(0),
+    //     deadline_round=Global.round + UInt64(30),
+    //     resolved=UInt64(0),
+    // )
+    uncover 2
+    itob
+    extract 6 2
+    uncover 4
+    concat
+    uncover 3
+    itob
+    bytec_1 // 0x0022
+    swap
+    concat
+    // smart_contracts/consensus_vault/contract.py:72
+    // collected=UInt64(0),
+    intc_2 // 0
+    // smart_contracts/consensus_vault/contract.py:69-75
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=escrow_id,
+    //     required_approvals=required,
+    //     collected=UInt64(0),
+    //     deadline_round=Global.round + UInt64(30),
+    //     resolved=UInt64(0),
+    // )
+    itob
+    swap
+    dig 1
+    concat
+    uncover 3
+    itob
+    concat
+    swap
+    concat
+    swap
+    concat
+    dig 1
+    box_del
+    pop
+    box_put
+    // smart_contracts/consensus_vault/contract.py:50
+    // @abimethod()
+    intc_3 // 1
+    return
+
+
+// smart_contracts.consensus_vault.contract.ConsensusVault.submit_consent[routing]() -> void:
+submit_consent:
+    // smart_contracts/consensus_vault/contract.py:77
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    txna ApplicationArgs 2
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:84
+    // assert payment_id.length == 32, "payment_id must be 32 bytes"
+    dig 1
+    len
+    pushint 32
+    ==
+    assert // payment_id must be 32 bytes
+    // smart_contracts/consensus_vault/contract.py:85
+    // assert consent_hash.length == 32, "consent_hash must be 32 bytes"
+    dup
+    len
+    pushint 32
+    ==
+    assert // consent_hash must be 32 bytes
+    // smart_contracts/consensus_vault/contract.py:87
+    // exists = payment_id in self.consensus_records
+    bytec_0 // 0x63763a
+    uncover 2
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/consensus_vault/contract.py:88
+    // assert exists, "no consensus record for this payment_id"
+    assert // no consensus record for this payment_id
+    // smart_contracts/consensus_vault/contract.py:89-90
+    // record = self.consensus_records[payment_id].copy()
+    // assert record.resolved == UInt64(0), "consensus already resolved"
+    dup
+    pushint 26
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    // smart_contracts/consensus_vault/contract.py:90
+    // assert record.resolved == UInt64(0), "consensus already resolved"
+    btoi
+    !
+    assert // consensus already resolved
+    // smart_contracts/consensus_vault/contract.py:91
+    // assert Global.round <= record.deadline_round, "consensus deadline passed"
+    global Round
+    dig 1
+    pushint 18
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    swap
+    dig 1
+    <=
+    assert // consensus deadline passed
+    // smart_contracts/consensus_vault/contract.py:93-94
+    // # Use consent_hash as dedup key (peer can't vote twice with same hash)
+    // already_voted = consent_hash in self.submitted
+    pushbytes 0x63733a
+    uncover 3
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/consensus_vault/contract.py:95
+    // assert not already_voted, "this consent already submitted"
+    !
+    assert // this consent already submitted
+    // smart_contracts/consensus_vault/contract.py:97
+    // self.submitted[consent_hash] = UInt64(1)
+    intc_3 // 1
+    itob
+    box_put
+    // smart_contracts/consensus_vault/contract.py:100
+    // escrow_id=record.escrow_id,
+    dig 1
+    pushint 34
+    intc_0 // 2
+    box_extract
+    btoi
+    intc_0 // 2
+    +
+    dig 2
+    pushint 34
+    uncover 2
+    box_extract
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:101
+    // required_approvals=record.required_approvals,
+    dig 2
+    intc_0 // 2
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    // smart_contracts/consensus_vault/contract.py:102
+    // collected=record.collected + UInt64(1),
+    dig 3
+    pushint 10
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    intc_3 // 1
+    +
+    // smart_contracts/consensus_vault/contract.py:99-105
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=record.escrow_id,
+    //     required_approvals=record.required_approvals,
+    //     collected=record.collected + UInt64(1),
+    //     deadline_round=record.deadline_round,
+    //     resolved=UInt64(0),
+    // )
+    dig 2
+    len
+    itob
+    extract 6 2
+    uncover 3
+    concat
+    uncover 2
+    itob
+    bytec_1 // 0x0022
+    swap
+    concat
+    uncover 2
+    itob
+    concat
+    uncover 2
+    itob
+    concat
+    // smart_contracts/consensus_vault/contract.py:104
+    // resolved=UInt64(0),
+    intc_2 // 0
+    // smart_contracts/consensus_vault/contract.py:99-105
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=record.escrow_id,
+    //     required_approvals=record.required_approvals,
+    //     collected=record.collected + UInt64(1),
+    //     deadline_round=record.deadline_round,
+    //     resolved=UInt64(0),
+    // )
+    itob
+    concat
+    swap
+    concat
+    dig 1
+    box_del
+    pop
+    box_put
+    // smart_contracts/consensus_vault/contract.py:77
+    // @abimethod()
+    intc_3 // 1
+    return
+
+
+// smart_contracts.consensus_vault.contract.ConsensusVault.execute_if_consensus[routing]() -> void:
+execute_if_consensus:
+    // smart_contracts/consensus_vault/contract.py:107
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:114
+    // exists = payment_id in self.consensus_records
+    bytec_0 // 0x63763a
+    swap
+    concat
+    dupn 2
+    box_len
+    bury 1
+    // smart_contracts/consensus_vault/contract.py:115
+    // assert exists, "no consensus record for this payment_id"
+    assert // no consensus record for this payment_id
+    // smart_contracts/consensus_vault/contract.py:116-117
+    // record = self.consensus_records[payment_id].copy()
+    // assert record.resolved == UInt64(0), "already resolved"
+    dup
+    pushint 26
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    // smart_contracts/consensus_vault/contract.py:117
+    // assert record.resolved == UInt64(0), "already resolved"
+    btoi
+    !
+    assert // already resolved
+    // smart_contracts/consensus_vault/contract.py:119
+    // if record.collected >= record.required_approvals:
+    dup
+    pushint 10
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    dup
+    uncover 2
+    intc_0 // 2
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    dup
+    cover 2
+    >=
+    bz execute_if_consensus_after_if_else@3
+    // smart_contracts/consensus_vault/contract.py:121
+    // escrow_id=record.escrow_id,
+    dig 2
+    dup
+    pushint 34
+    intc_0 // 2
+    box_extract
+    btoi
+    intc_0 // 2
+    +
+    dig 1
+    pushint 34
+    uncover 2
+    box_extract
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:124
+    // deadline_round=record.deadline_round,
+    dig 1
+    pushint 18
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    // smart_contracts/consensus_vault/contract.py:120-126
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=record.escrow_id,
+    //     required_approvals=record.required_approvals,
+    //     collected=record.collected,
+    //     deadline_round=record.deadline_round,
+    //     resolved=UInt64(1),
+    // )
+    dig 1
+    len
+    itob
+    extract 6 2
+    uncover 2
+    concat
+    dig 3
+    itob
+    bytec_1 // 0x0022
+    swap
+    concat
+    dig 5
+    itob
+    concat
+    uncover 2
+    itob
+    concat
+    // smart_contracts/consensus_vault/contract.py:125
+    // resolved=UInt64(1),
+    intc_3 // 1
+    // smart_contracts/consensus_vault/contract.py:120-126
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=record.escrow_id,
+    //     required_approvals=record.required_approvals,
+    //     collected=record.collected,
+    //     deadline_round=record.deadline_round,
+    //     resolved=UInt64(1),
+    // )
+    itob
+    concat
+    swap
+    concat
+    dig 1
+    box_del
+    pop
+    box_put
+    // smart_contracts/consensus_vault/contract.py:127
+    // return UInt64(1)
+    intc_3 // 1
+    bury 2
+
+execute_if_consensus_after_inlined_smart_contracts.consensus_vault.contract.ConsensusVault.execute_if_consensus@4:
+    // smart_contracts/consensus_vault/contract.py:107
+    // @abimethod()
+    dig 1
+    itob
+    bytec_2 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_3 // 1
+    return
+
+execute_if_consensus_after_if_else@3:
+    // smart_contracts/consensus_vault/contract.py:128
+    // return UInt64(0)
+    intc_2 // 0
+    bury 2
+    // smart_contracts/consensus_vault/contract.py:107
+    // @abimethod()
+    b execute_if_consensus_after_inlined_smart_contracts.consensus_vault.contract.ConsensusVault.execute_if_consensus@4
+
+
+// smart_contracts.consensus_vault.contract.ConsensusVault.timeout_reject[routing]() -> void:
+timeout_reject:
+    // smart_contracts/consensus_vault/contract.py:130
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:136
+    // exists = payment_id in self.consensus_records
+    bytec_0 // 0x63763a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/consensus_vault/contract.py:137
+    // assert exists, "no consensus record for this payment_id"
+    assert // no consensus record for this payment_id
+    // smart_contracts/consensus_vault/contract.py:138-139
+    // record = self.consensus_records[payment_id].copy()
+    // assert record.resolved == UInt64(0), "already resolved"
+    dup
+    pushint 26
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    // smart_contracts/consensus_vault/contract.py:139
+    // assert record.resolved == UInt64(0), "already resolved"
+    btoi
+    !
+    assert // already resolved
+    // smart_contracts/consensus_vault/contract.py:140
+    // assert Global.round > record.deadline_round, "deadline not yet passed"
+    global Round
+    dig 1
+    pushint 18
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    swap
+    dig 1
+    >
+    assert // deadline not yet passed
+    // smart_contracts/consensus_vault/contract.py:143
+    // escrow_id=record.escrow_id,
+    dig 1
+    pushint 34
+    intc_0 // 2
+    box_extract
+    btoi
+    intc_0 // 2
+    +
+    dig 2
+    pushint 34
+    uncover 2
+    box_extract
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:144
+    // required_approvals=record.required_approvals,
+    dig 2
+    intc_0 // 2
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    // smart_contracts/consensus_vault/contract.py:145
+    // collected=record.collected,
+    dig 3
+    pushint 10
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    btoi
+    // smart_contracts/consensus_vault/contract.py:142-148
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=record.escrow_id,
+    //     required_approvals=record.required_approvals,
+    //     collected=record.collected,
+    //     deadline_round=record.deadline_round,
+    //     resolved=UInt64(2),
+    // )
+    dig 2
+    len
+    itob
+    extract 6 2
+    uncover 3
+    concat
+    uncover 2
+    itob
+    bytec_1 // 0x0022
+    swap
+    concat
+    uncover 2
+    itob
+    concat
+    uncover 2
+    itob
+    concat
+    // smart_contracts/consensus_vault/contract.py:147
+    // resolved=UInt64(2),
+    intc_0 // 2
+    // smart_contracts/consensus_vault/contract.py:142-148
+    // self.consensus_records[payment_id] = ConsensusRecord(
+    //     escrow_id=record.escrow_id,
+    //     required_approvals=record.required_approvals,
+    //     collected=record.collected,
+    //     deadline_round=record.deadline_round,
+    //     resolved=UInt64(2),
+    // )
+    itob
+    concat
+    swap
+    concat
+    dig 1
+    box_del
+    pop
+    box_put
+    // smart_contracts/consensus_vault/contract.py:130
+    // @abimethod()
+    intc_3 // 1
+    return
+
+
+// smart_contracts.consensus_vault.contract.ConsensusVault.get_consensus_status[routing]() -> void:
+get_consensus_status:
+    // smart_contracts/consensus_vault/contract.py:154
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:157
+    // exists = payment_id in self.consensus_records
+    bytec_0 // 0x63763a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/consensus_vault/contract.py:158
+    // assert exists, "no consensus record for this payment_id"
+    assert // no consensus record for this payment_id
+    // smart_contracts/consensus_vault/contract.py:159-160
+    // record = self.consensus_records[payment_id].copy()
+    // return record.resolved
+    pushint 26
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    // smart_contracts/consensus_vault/contract.py:154
+    // @abimethod()
+    bytec_2 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_3 // 1
+    return
+
+
+// smart_contracts.consensus_vault.contract.ConsensusVault.get_collected[routing]() -> void:
+get_collected:
+    // smart_contracts/consensus_vault/contract.py:162
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    intc_2 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    extract 2 0
+    // smart_contracts/consensus_vault/contract.py:165
+    // exists = payment_id in self.consensus_records
+    bytec_0 // 0x63763a
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    // smart_contracts/consensus_vault/contract.py:166
+    // assert exists, "no consensus record"
+    assert // no consensus record
+    // smart_contracts/consensus_vault/contract.py:167-168
+    // record = self.consensus_records[payment_id].copy()
+    // return record.collected
+    pushint 10
+    intc_1 // 8
+    box_extract // on error: index out of bounds
+    // smart_contracts/consensus_vault/contract.py:162
+    // @abimethod()
+    bytec_2 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_3 // 1
+    return

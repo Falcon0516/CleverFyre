@@ -47,7 +47,7 @@ class PaymentDNARegistry(ARC4Contract):
         Create a zero-vector DNA record for a new agent.
         Callable by anyone (agent must not already have a record).
         """
-        _, exists = self.dna_records.maybe(agent)
+        exists = agent in self.dna_records
         assert not exists, "DNA already initialised for agent"
         self.dna_records[agent] = DNARecord(
             vector=Bytes(b"\x00" * 32),
@@ -67,8 +67,9 @@ class PaymentDNARegistry(ARC4Contract):
         assert Txn.sender == Global.creator_address or True, "caller check placeholder"
         assert observation.length == 32, "observation must be 32 bytes"
 
-        record, exists = self.dna_records.maybe(agent)
+        exists = agent in self.dna_records
         assert exists, "DNA not initialised — call initialize_dna first"
+        record = self.dna_records[agent].copy()
 
         # EMA blend: new_vector[i] = 0.1 * obs[i] + 0.9 * old[i]
         # Done off-chain; we just store the pre-blended bytes here.
@@ -82,8 +83,9 @@ class PaymentDNARegistry(ARC4Contract):
     @abimethod()
     def record_drift_event(self, agent: Account) -> None:
         """Increment the drift event counter for forensic audit."""
-        record, exists = self.dna_records.maybe(agent)
+        exists = agent in self.dna_records
         assert exists, "DNA not initialised"
+        record = self.dna_records[agent].copy()
         self.dna_records[agent] = DNARecord(
             vector=record.vector,
             last_updated=record.last_updated,
@@ -98,20 +100,23 @@ class PaymentDNARegistry(ARC4Contract):
     @abimethod()
     def get_dna_vector(self, agent: Account) -> Bytes:
         """Return the raw 32-byte DNA vector for an agent."""
-        record, exists = self.dna_records.maybe(agent)
+        exists = agent in self.dna_records
         assert exists, "DNA not initialised"
+        record = self.dna_records[agent].copy()
         return record.vector
 
     @abimethod()
     def get_drift_events(self, agent: Account) -> UInt64:
         """Return total recorded drift events for an agent."""
-        record, exists = self.dna_records.maybe(agent)
+        exists = agent in self.dna_records
         assert exists, "DNA not initialised"
+        record = self.dna_records[agent].copy()
         return record.drift_events
 
     @abimethod()
     def get_total_payments(self, agent: Account) -> UInt64:
         """Return total successful payments recorded for an agent."""
-        record, exists = self.dna_records.maybe(agent)
+        exists = agent in self.dna_records
         assert exists, "DNA not initialised"
+        record = self.dna_records[agent].copy()
         return record.total_payments
