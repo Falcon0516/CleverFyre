@@ -1,0 +1,21 @@
+org_id: "acme-corp"
+agent_role: "market-researcher"
+renewal_window_rounds: 360            # ~30 min on Algorand (~4s/round)
+spend_cap_algo: 1.0                   # max per single call
+burst_window_sec: 30
+burst_max_calls: 15
+replay_protection: true
+consensus_threshold_algo: 5.0         # payments > 5 ALGO require M-of-N
+consensus_required_peers: 3
+consensus_min_approvals: 2
+dna_drift_threshold: 0.30             # cosine distance, triggers anomaly
+mission_drift_threshold: 0.40         # wasserstein distance, triggers alert
+semantic_threshold: 0.70              # minimum cosine sim for category match
+budget_map:
+  weather: 0.5
+  financial_data: 2.0
+  news: 0.3
+  search: 0.2
+  maps: 0.5
+  compute: 5.0
+  communication: 0.2

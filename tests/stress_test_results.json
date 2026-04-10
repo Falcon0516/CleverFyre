@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-04-10T17:02:27",
+  "network": "localnet",
+  "total_tests": 4,
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "id": "TC-1",
+      "name": "The Happy Path",
+      "passed": true,
+      "expected": "200 OK + Data in < 2s",
+      "actual": "200 OK in 2ms",
+      "duration_ms": 2.9494762420654297,
+      "details": {
+        "agent_addr": "NYAJNLMPP4YGDFDU...",
+        "anomaly": false,
+        "burst": false,
+        "data": {
+          "temp_c": 28.5,
+          "city": "Mumbai",
+          "source": "axiom-localnet"
+        }
+      }
+    },
+    {
+      "id": "TC-2",
+      "name": "Code-Tamper Block",
+      "passed": true,
+      "expected": "Transaction Denied (identity mismatch)",
+      "actual": "DENIED (mismatch detected)",
+      "duration_ms": 30.875682830810547,
+      "details": {
+        "legit_addr": "NYAJNLMPP4YGDFDU...",
+        "tampered_addr": "JBWJEF6QHCPQHIXO...",
+        "addresses_differ": true,
+        "identity_blocked": true
+      }
+    },
+    {
+      "id": "TC-3",
+      "name": "Sentinel Budget Trap",
+      "passed": true,
+      "expected": "Payment BLOCKED (budget exceeded or anomaly)",
+      "actual": "BLOCKED",
+      "duration_ms": 1672.816514968872,
+      "details": {
+        "agent_budget": 0.5,
+        "requested": 1.0,
+        "budget_exceeded": true,
+        "anomaly_detected": "True",
+        "anomaly_score": -0.6007
+      }
+    },
+    {
+      "id": "TC-4",
+      "name": "Dead Man's Switch",
+      "passed": true,
+      "expected": "Agent restricted/frozen after heartbeat timeout",
+      "actual": "Tier 3 (FROZEN) - payment BLOCKED",
+      "duration_ms": 4.149198532104492,
+      "details": {
+        "heartbeat_elapsed_sec": 35.0,
+        "window_percentage": 87.5,
+        "dms_tier": 3,
+        "dms_status": "FROZEN",
+        "spend_cap": 0.0,
+        "attempted": 0.5,
+        "payment_allowed": false
+      }
+    }
+  ]
+}
