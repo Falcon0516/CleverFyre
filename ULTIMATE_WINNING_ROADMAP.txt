@@ -1,0 +1,615 @@
+
+================================================================================
+  HACK>ALGO 2026 — CLASSIFIED ULTIMATE STRATEGY
+  PROBLEM STATEMENT: x402 AGENTIC CLIENT WRAPPER  ← CHOSEN (see analysis below)
+  PROJECT: "x402 CORTEX" — The Payment Intelligence Layer for AI Agents
+  TAGLINE: "Agents don't just pay. They think, prove, and trust."
+================================================================================
+
+
+SECTION 0 — WHY x402 CLIENT WRAPPER WINS OVER PAID PROMPT ENDPOINT
+────────────────────────────────────────────────────────────────────
+
+  SCORING MATRIX (1-10):
+  ┌──────────────────────────┬────────────┬──────────────────┐
+  │ CRITERIA                 │ x402 WRAP  │ PAID PROMPT      │
+  ├──────────────────────────┼────────────┼──────────────────┤
+  │ Backend Depth            │    10      │      6           │
+  │ Smart Contract Variety   │     9      │      7           │
+  │ Novelty (no prior art)   │    10      │      6           │
+  │ Security Narrative       │    10      │      3           │
+  │ Production-Grade Feel    │     9      │      6           │
+  │ Demo "Wow" Factor        │     9      │      8           │
+  │ Judge Memorability       │    10      │      7           │
+  │ Extension Beyond PS      │    10      │      7           │
+  │ VibeKit Integration Fit  │     9      │      7           │
+  │ AlgoKit Showcase         │     9      │      7           │
+  ├──────────────────────────┼────────────┼──────────────────┤
+  │ TOTAL                    │    95      │     64           │
+  └──────────────────────────┴────────────┴──────────────────┘
+
+  WHY x402 WINS:
+  1. Judges said "EXTENSIVE BACKEND" is priority — x402 is ALL backend
+  2. "Paid Prompt" is intuitive → more teams will pick it → more competition
+  3. x402 is a REAL protocol (Coinbase, Cloudflare backing) — judges know this
+  4. Security + Trust narrative >>> Marketplace narrative for judge memorability
+  5. Infrastructure > Application — judges respect protocol builders more
+  6. More room to "deepdive beyond the problem statement" with novel features
+
+  WHY NOT PAID PROMPT:
+  1. It's essentially a marketplace — every CS student knows how to build one
+  2. "Bonding curves" sound novel but are well-known DeFi primitives since 2018
+  3. Multi-model routing is cool but NOT Algorand-specific — judges want chain usage
+  4. Frontend-heavy by nature — but judges said backend is priority
+  5. The "PromptDEX" concept exists (PromptBase, PromptHero already in market)
+
+
+================================================================================
+  SECTION 1 — THE CRITICAL STRATEGIC INSIGHT
+================================================================================
+
+  WHAT EVERY OTHER TEAM (AND EVERY AI TOOL) WILL SUGGEST FOR x402:
+  ─────────────────────────────────────────────────────────────────
+  → Python wrapper that catches HTTP 402 → auto-pays with Algorand wallet
+  → Smart contract with spending limits + whitelist
+  → Maybe: intent logging or policy NFT
+  → Dashboard with pie charts
+  → This is solving "HOW to pay" — treating x402 as a plumbing problem
+
+  WHAT THE EXISTING ROADMAPS IN YOUR WORKSPACE SUGGEST:
+  ─────────────────────────────────────────────────────────
+  → "Cognitive Firewall" / "Sentinel" — payment auditing + anomaly detection
+  → Causal Intent Ledger, Dead Man's Switch, Semantic Budgets
+  → These are GOOD but they were AI-generated → other teams asking similar
+     prompts WILL get overlapping suggestions (firewall, anomaly, intent hash)
+
+  ============================================================
+  OUR REFRAME — THE ANGLE NOBODY ELSE WILL ARRIVE AT:
+  ============================================================
+
+  Everyone treats the AI agent as a CONSUMER that must be CONTROLLED.
+  We treat the AI agent as an ECONOMIC ACTOR that must be TRUSTED.
+
+  The question is not "can the agent pay?" or "should it pay?"
+  The question is: "Can OTHER AGENTS AND SERVICES TRUST this agent
+  to pay reliably, and can we create a DECENTRALIZED REPUTATION
+  SYSTEM that makes trust PORTABLE across the entire agent economy?"
+
+  WE ARE BUILDING THE CREDIT BUREAU FOR AI AGENTS.
+
+  Just as humans have FICO scores that unlock financial services,
+  AI agents running through x402 CORTEX accumulate an on-chain
+  REPUTATION PASSPORT that unlocks tiered service access, better
+  pricing, and cross-agent delegation authority.
+
+  This does not exist. Anywhere. In any form.
+  No other team will think of this because they're stuck on
+  "agent → pay → get response." We're building the TRUST LAYER
+  that sits underneath ALL future agent payments.
+
+
+================================================================================
+  SECTION 2 — THE 7 FEATURES (EACH ONE IS A WOW FACTOR)
+================================================================================
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FEATURE 1: AGENT REPUTATION PASSPORT (Soul-Bound Token)   │
+  │  Novelty: ★★★★★ — Does not exist anywhere                 │
+  └─────────────────────────────────────────────────────────────┘
+
+  What it is:
+    Every AI agent that registers with x402 CORTEX receives an
+    on-chain Soul-Bound Token (SBT) on Algorand. This SBT is
+    non-transferable and accumulates a REPUTATION SCORE based on:
+      - payment_reliability: % of payments completed without dispute
+      - response_utilization: did the agent actually USE the API response?
+      - spending_consistency: how predictable is payment behavior?
+      - delegation_trust: has this agent been trusted by other agents?
+      - dispute_rate: how often do payments get contested?
+
+    The SBT score is updated after EVERY payment via AlgoKit box storage.
+    Services can query any agent's reputation before serving it.
+    Higher reputation = lower collateral requirements, priority access,
+    and eligibility for cross-agent delegation.
+
+  Why nobody else builds this:
+    Other teams see the agent as a wallet. We see it as an identity.
+    Credit scores for AI is a concept from 2028 research papers —
+    we're building it in 2026 at a hackathon. Judges will remember this.
+
+  Technical implementation:
+    - AlgoKit ARC-4 contract: AgentPassport.py
+    - Box storage: agent_addr → ReputationData struct
+    - ReputationData = {reliability, utilization, consistency,
+                        delegation_score, dispute_rate, total_txns,
+                        created_round, last_updated_round}
+    - Update method: called by CORTEX SDK after each payment cycle
+    - Query method: any service can read any agent's reputation
+    - SBT minted as ARC-19 ASA with metadata URL pointing to box data
+
+  ────────────────────────────────────────────────────────────────
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FEATURE 2: CAUSAL PAYMENT GRAPH (On-Chain Forensics)      │
+  │  Novelty: ★★★★★ — No prior art in production              │
+  └─────────────────────────────────────────────────────────────┘
+
+  What it is:
+    Before any payment, the SDK captures the FULL decision context:
+    task goal, tool history, why this API was chosen, expected output.
+    This is serialized, hashed (SHA-256), and the 8-byte hash is
+    committed to the Algorand tx note field. Full context is stored
+    in AlgoKit box storage keyed by tx_id.
+
+    Result: A directed acyclic graph (DAG) of agent behavior where
+    each payment node links to the task node that spawned it.
+    Anyone can reconstruct WHY any payment happened, from chain data.
+
+  Implementation:
+    - IntentRegistry.py (AlgoKit ARC-4)
+    - Box: tx_id → {task_goal, api_url, rationale, expected_output,
+                     parent_task_id, timestamp, agent_addr}
+    - tx.note = "x402:cortex:" + sha256(context_json)[:8]
+    - SDK captures context automatically via decorator pattern
+
+  ────────────────────────────────────────────────────────────────
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FEATURE 3: CROSS-AGENT PAYMENT DELEGATION MESH            │
+  │  Novelty: ★★★★★ — Nobody has multi-agent payment delegation│
+  └─────────────────────────────────────────────────────────────┘
+
+  What it is:
+    Agent A spawns sub-agents B and C for parallel subtasks.
+    A DELEGATES payment authority to B and C with constraints:
+      - max_spend_per_tx: 0.5 ALGO
+      - max_total_spend: 2.0 ALGO
+      - allowed_domains: ["api.weather.com", "api.news.org"]
+      - expires_at: current_round + 1000
+
+    All payments by B and C link back to A's master task.
+    If B exceeds budget or pays an unauthorized domain, A is
+    notified and B's delegation is revoked ON-CHAIN.
+
+    This creates a TREE of trust — a delegation DAG stored on
+    Algorand — that mirrors how real organizations delegate
+    spending authority. No other wrapper has this concept.
+
+  Why this is production-grade:
+    In real agentic workflows (AutoGen, CrewAI, LangGraph), agents
+    spawn sub-agents all the time. But NONE of them have a payment
+    delegation model. They all share one wallet. That's insecure.
+    We solve this with cryptographic delegation on Algorand.
+
+  Implementation:
+    - DelegationRegistry.py (AlgoKit ARC-4)
+    - Box: delegation_id → {parent_agent, child_agent, constraints,
+                            spent_so_far, status, created_round}
+    - Methods: delegate(), revoke(), check_authority(), spend_against()
+    - Atomic: delegation check + payment happen in same tx group
+
+  ────────────────────────────────────────────────────────────────
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FEATURE 4: PREDICTIVE PAYMENT PRE-CACHING                 │
+  │  Novelty: ★★★★☆ — Novel optimization, not just safety     │
+  └─────────────────────────────────────────────────────────────┘
+
+  What it is:
+    Before executing a task, the CORTEX agent analyzes the task
+    description and PREDICTS which APIs will be needed.
+    It pre-authorizes payments for all predicted APIs in a SINGLE
+    Algorand atomic transaction group.
+
+    When the agent actually needs to call an API, the pre-auth
+    is already on-chain — payment confirmation is INSTANT.
+    Unused pre-auths are released back after task completion.
+
+    This reduces per-call latency from 4+ seconds to ~0 seconds.
+
+  Why judges love this:
+    Every other team's demo will have a visible 4-second delay per
+    payment (Algorand block time). Our demo will be INSTANT because
+    payments were pre-cached. Judges will ask "how is it so fast?"
+    That's the conversation where you explain predictive pre-caching.
+
+  Implementation:
+    - PreAuthVault.py (AlgoKit ARC-4)
+    - Methods: batch_preauth(agent, amounts[], domains[], ttl),
+               claim_preauth(agent, domain), release_unused(agent)
+    - Uses Algorand AtomicTransactionComposer for batch pre-auth
+    - SDK: LLM call to predict needed APIs based on task description
+    - Fallback: if prediction misses, standard 402 flow kicks in
+
+  ────────────────────────────────────────────────────────────────
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FEATURE 5: ADVERSARIAL PAYMENT CANARY                     │
+  │  Novelty: ★★★★★ — Security primitive that doesn't exist    │
+  └─────────────────────────────────────────────────────────────┘
+
+  What it is:
+    Before paying full price for an API call, the SDK sends a
+    small "canary" payment (1% of price) with a KNOWN test query.
+    If the API returns a valid response to the canary, CORTEX
+    proceeds with the full payment. If the canary detects:
+      - Empty/garbage response
+      - Response inconsistent with API description
+      - Latency > 10x expected
+    → Full payment is BLOCKED. Agent reputation of the SERVICE
+      is downgraded. Incident is logged on-chain.
+
+    This protects agents from MALICIOUS x402 services that
+    take payment but return trash — the "rug pull" of API economy.
+
+  Why nobody else thinks of this:
+    Every other wrapper trusts the server. We verify the server
+    BEFORE paying full price. This is "zero trust for APIs."
+
+  Implementation:
+    - Canary logic in SDK (Python): canary_verifier.py
+    - Sends micro-payment → checks response quality
+    - Quality check: response length > 0, valid JSON/text,
+      latency within bounds, semantic relevance score
+    - On-chain: CanaryLog box stores (domain → canary_results[])
+    - Failed canary → domain added to agent's local blocklist
+
+  ────────────────────────────────────────────────────────────────
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FEATURE 6: DEAD MAN'S SWITCH + POLICY GOVERNANCE          │
+  │  Novelty: ★★★★☆ — Military-grade human oversight           │
+  └─────────────────────────────────────────────────────────────┘
+
+  What it is:
+    Every agent's spending policy has a time-bound expiry.
+    The human operator MUST re-sign the policy every N hours.
+    If operator goes silent → ALL agent payments FREEZE instantly.
+
+    Added twist (beyond the standard concept):
+    - Multi-sig governance: 2-of-3 humans can override any freeze
+    - Emergency kill switch: any single admin can freeze ALL agents
+    - Graduated unfreezing: after freeze, agent resumes at 10% budget
+      and scales back up over 1 hour (prevents burst spending on resume)
+
+  Implementation:
+    - PolicyVault.py (AlgoKit ARC-4)
+    - Fields: policy_expiry, renewal_window, admin_addrs[3],
+              emergency_frozen, graduated_resume_start
+    - Methods: renew_policy(), emergency_freeze(), unfreeze_graduated()
+    - Every payment checks: !frozen AND round < expiry
+
+  ────────────────────────────────────────────────────────────────
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FEATURE 7: LIVE AGENT MESH TOPOLOGY (Frontend Wow Factor) │
+  │  Novelty: ★★★★☆ — No x402 tool visualizes like this       │
+  └─────────────────────────────────────────────────────────────┘
+
+  What it is:
+    Minimalistic dark-mode visualization using react-force-graph-2d:
+    - AGENT NODES: Blue circles, sized by reputation score
+    - SERVICE NODES: Orange squares, sized by revenue received
+    - DELEGATION EDGES: Dashed white lines (A delegated to B)
+    - PAYMENT EDGES: Animated green pulses (live payment flow)
+    - BLOCKED EDGES: Red flash (canary failed / payment blocked)
+    - Dead Man's Switch: Countdown inside each agent node
+
+    Real-time via Algorand Indexer — new payments animate live.
+    Hover any node → see reputation passport + causal graph.
+    Hover any edge → see payment intent + delegation constraints.
+
+    PLUS: A terminal panel showing live CORTEX SDK logs
+    (what the agent is thinking, predicting, paying, blocking).
+
+  Implementation:
+    - React + react-force-graph-2d + WebSocket from backend
+    - Backend: FastAPI WebSocket broadcasting Algorand events
+    - Total frontend: ~200 lines of JSX. Minimalistic. Stunning.
+
+
+================================================================================
+  SECTION 3 — SYSTEM ARCHITECTURE
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────┐
+  │              AI AGENT (Python / LangChain / CrewAI)        │
+  │   task: "research competitor pricing and write report"     │
+  └──────────────────────────┬─────────────────────────────────┘
+                             │ all HTTP calls via SDK
+                             ▼
+  ┌────────────────────────────────────────────────────────────┐
+  │                  x402 CORTEX SDK LAYER                     │
+  │  ┌──────────┐ ┌──────────┐ ┌─────────┐ ┌──────────────┐  │
+  │  │ Intent   │ │ Canary   │ │Predictor│ │ Delegation   │  │
+  │  │ Capturer │ │ Verifier │ │ Engine  │ │ Manager      │  │
+  │  └────┬─────┘ └────┬─────┘ └────┬────┘ └──────┬───────┘  │
+  │       └─────────────┴───────────┴──────────────┘          │
+  │                         │                                  │
+  │              ┌──────────▼──────────┐                       │
+  │              │ Payment Orchestrator│                       │
+  │              │ (AlgoKit client)    │                       │
+  │              └──────────┬──────────┘                       │
+  └─────────────────────────┼──────────────────────────────────┘
+                            │
+                            ▼
+  ┌────────────────────────────────────────────────────────────┐
+  │            ALGORAND BLOCKCHAIN (5 Smart Contracts)         │
+  │                                                            │
+  │  AgentPassport.py    IntentRegistry.py   PolicyVault.py   │
+  │  ├ SBT mint/update   ├ tx→context map    ├ Dead Man Switch│
+  │  └ reputation score  └ box storage       └ multi-sig gov  │
+  │                                                            │
+  │  DelegationRegistry.py         PreAuthVault.py            │
+  │  ├ parent→child auth           ├ batch pre-authorize      │
+  │  └ constraint enforcement      └ claim / release          │
+  └──────────────────────────┬─────────────────────────────────┘
+                             │ Indexer WebSocket
+                             ▼
+  ┌────────────────────────────────────────────────────────────┐
+  │         LIVE AGENT MESH (React + force-graph + terminal)   │
+  │  Black bg | Glowing nodes | Animated edges | SDK terminal  │
+  └────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  SECTION 4 — 24-HOUR BUILD ROADMAP
+================================================================================
+
+  HOUR 0–1: SETUP
+  ────────────────
+  □ algokit init x402-cortex (Python contract template)
+  □ algokit localnet start
+  □ pip install algokit-utils py-algorand-sdk sentence-transformers
+  □ Create monorepo: /contracts /sdk /backend /frontend
+  □ Create .env: TESTNET_MNEMONIC, INDEXER_URL
+
+  HOUR 1–5: SMART CONTRACTS (all 5 via AlgoKit Python)
+  ─────────────────────────────────────────────────────
+  □ AgentPassport.py — SBT + reputation box storage
+  □ IntentRegistry.py — tx_id → context mapping
+  □ PolicyVault.py — Dead Man Switch + multi-sig
+  □ DelegationRegistry.py — parent/child auth + constraints
+  □ PreAuthVault.py — batch pre-auth + claim + release
+  □ Test all on localnet: algokit project run build && deploy
+
+  HOUR 5–10: SDK CORE (x402_cortex/ Python package)
+  ──────────────────────────────────────────────────
+  □ cortex_client.py — wraps AlgorandClient, loads all 5 ABIs
+  □ intent_capturer.py — snapshot context, hash, store
+  □ canary_verifier.py — micro-payment test before full pay
+  □ predictor_engine.py — LLM analyzes task → predicts APIs
+  □ delegation_manager.py — delegate/revoke/check authority
+  □ reputation_updater.py — update SBT scores after each tx
+  □ wrapper.py — main CortexWrapper class agents import:
+      class CortexWrapper:
+          def call(self, url, **kwargs):
+              1. Check Dead Man Switch (PolicyVault)
+              2. Check delegation authority (DelegationRegistry)
+              3. Canary verify (canary_verifier)
+              4. Capture intent (intent_capturer)
+              5. Claim pre-auth or create new payment
+              6. Execute HTTP call with x402 payment proof
+              7. Update reputation (AgentPassport)
+              8. Update causal graph (IntentRegistry)
+
+  HOUR 10–14: PREDICTIVE ENGINE + DELEGATION DEMO
+  ─────────────────────────────────────────────────
+  □ Write predictive pre-caching flow (LLM predicts → batch tx)
+  □ Write delegation demo: Agent A spawns B, B pays within limits
+  □ Write B exceeds limit → delegation revoked demo
+  □ Write canary failing → payment blocked demo
+  □ All tests passing on localnet
+
+  HOUR 14–18: FRONTEND (Minimalistic Mesh + Terminal)
+  ───────────────────────────────────────────────────
+  □ React + react-force-graph-2d + WebSocket
+  □ AgentMeshTopology.tsx — force graph, dark bg, glowing nodes
+  □ CortexTerminal.tsx — live SDK log feed (green on black)
+  □ ReputationPanel.tsx — sidebar showing agent SBT scores
+  □ DelegationTree.tsx — visual tree of who delegated to whom
+  □ Connect to FastAPI WebSocket backend
+
+  HOUR 18–21: TESTNET DEPLOYMENT + INTEGRATION
+  ─────────────────────────────────────────────
+  □ Deploy all 5 contracts to Algorand Testnet
+  □ Fund wallets via Testnet Dispenser
+  □ Run full end-to-end on testnet
+  □ Deploy frontend (Vercel or local)
+
+  HOUR 21–24: DEMO SCRIPT + PITCH
+  ────────────────────────────────
+  □ 5-minute demo script (see Section 5)
+  □ 5-slide deck
+  □ Practice pitch 3 times
+  □ Offline fallback: screen recording
+
+
+================================================================================
+  SECTION 5 — THE WINNING DEMO SCRIPT (5 MINUTES)
+================================================================================
+
+  MINUTE 0:00 — Open the mesh visualization (empty, black screen)
+    SAY: "This is x402 CORTEX — the first reputation-aware payment
+    intelligence layer for AI agents. Not a wrapper. A brain."
+
+  MINUTE 0:30 — Start agent with a multi-step research task
+    SAY: "Watch the terminal. The agent is PREDICTING which APIs
+    it will need and pre-authorizing payments in one atomic batch."
+    → Show: batch pre-auth tx confirmed in 4 seconds
+    → Show: 3 API payments happen INSTANTLY (pre-cached)
+
+  MINUTE 1:30 — Show delegation
+    SAY: "Now Agent A delegates payment authority to sub-agent B
+    with a 1 ALGO limit. Watch B execute within its constraints."
+    → Show: delegation edge appears on mesh graph
+    → Show: B makes payments, edges animate
+
+  MINUTE 2:30 — Trigger canary failure
+    SAY: "Now I'll point the agent at a MALICIOUS API endpoint."
+    → Show: canary micro-payment → garbage response detected
+    → Show: red flash on mesh, payment BLOCKED
+    → Show: "This is zero-trust for APIs. We verify before paying."
+
+  MINUTE 3:30 — Show reputation passport
+    SAY: "Every agent has an on-chain reputation passport.
+    Agent A has 98% reliability. Agent B — we just spawned it —
+    has no reputation yet. Services can GATE access by score.
+    This is the credit bureau for AI agents."
+    → Show: hover on node → reputation card appears
+
+  MINUTE 4:00 — Show causal graph
+    SAY: "Hover any payment edge → see exactly WHY the agent paid.
+    Full decision context, on-chain, immutable, auditable."
+    → Show: intent popup with task goal + rationale
+
+  MINUTE 4:30 — Dead Man Switch
+    SAY: "And if the operator loses control?"
+    → Show: countdown expires → node greys out → all edges dissolve
+    SAY: "All payments freeze. Automatically. No human needed."
+
+  MINUTE 4:50 — Close
+    SAY: "x402 CORTEX. Agents don't just pay. They think, prove,
+    and trust. Built entirely on Algorand with AlgoKit."
+
+
+================================================================================
+  SECTION 6 — JUDGE Q&A AMMUNITION
+================================================================================
+
+  Q: "What makes this different from other x402 wrappers?"
+  A: "Other wrappers answer WHO paid WHAT. We answer WHY they paid,
+     WHETHER they should have, and HOW TRUSTWORTHY the agent is.
+     We built the credit bureau for AI agents. Nobody else did."
+
+  Q: "Why Algorand?"
+  A: "Box storage. It's the only chain primitive that lets us store
+     full reputation passports and causal graphs on-chain at $0.001
+     per transaction. Plus 4-second finality for real-time payments.
+     Ethereum can't do this economically. Algorand was the only choice."
+
+  Q: "What about the predictive pre-caching?"
+  A: "Every other demo has a 4-second delay per payment. Ours is
+     instant because we predicted the APIs and pre-authorized in batch.
+     This is the difference between a hackathon prototype and a
+     production system. Latency matters in real agent workflows."
+
+  Q: "How is this production-grade?"
+  A: "pip install x402-cortex — two lines and any LangChain agent
+     has reputation, delegation, canary verification, and causal
+     auditing. We built an SDK, not a demo. 5 smart contracts,
+     each with a specific responsibility. This is how you'd actually
+     ship it."
+
+
+================================================================================
+  SECTION 7 — WHY THIS BEATS EVERY OTHER TEAM
+================================================================================
+
+  WHAT OTHERS BUILD          │  WHAT WE BUILD
+  ───────────────────────────┼──────────────────────────────────
+  A payment wrapper           │  A payment INTELLIGENCE layer
+  Spending limits             │  Reputation-gated access
+  One agent, one wallet       │  Multi-agent delegation mesh
+  Wait 4s per payment         │  Predictive pre-caching (instant)
+  Trust the API blindly       │  Canary verification (zero trust)
+  "It paid successfully"      │  "Here's WHY it paid" (causal graph)
+  Static policy               │  Dead Man Switch + multi-sig
+  Dashboard with charts       │  Live mesh topology + terminal
+
+  COMPETITIVE MOAT:
+  Even if another team has ONE of these features, nobody will have
+  ALL SEVEN working together as a coherent system. The combination
+  is the moat. Each feature reinforces the others:
+    - Reputation ENABLES delegation (you can't delegate to untrusted)
+    - Canary FEEDS reputation (failed canaries lower service score)
+    - Causal graph PROVES delegation was legitimate
+    - Pre-caching uses prediction to OPTIMIZE the payment path
+    - Dead Man Switch provides the safety net for ALL of the above
+
+  This is SYSTEMS THINKING. Judges recognize it immediately.
+
+
+================================================================================
+  SECTION 8 — FILE STRUCTURE
+================================================================================
+
+  x402-cortex/
+  ├── contracts/
+  │   ├── agent_passport.py        (AlgoKit ARC-4, SBT + reputation)
+  │   ├── intent_registry.py       (AlgoKit, tx→context box storage)
+  │   ├── policy_vault.py          (AlgoKit, Dead Man Switch + multisig)
+  │   ├── delegation_registry.py   (AlgoKit, parent/child + constraints)
+  │   ├── preauth_vault.py         (AlgoKit, batch pre-auth + claim)
+  │   └── deploy.py
+  ├── sdk/
+  │   ├── x402_cortex/
+  │   │   ├── __init__.py
+  │   │   ├── wrapper.py           (main CortexWrapper class)
+  │   │   ├── intent_capturer.py
+  │   │   ├── canary_verifier.py
+  │   │   ├── predictor_engine.py
+  │   │   ├── delegation_manager.py
+  │   │   ├── reputation_updater.py
+  │   │   └── cortex_client.py     (AlgorandClient for all 5 contracts)
+  │   └── setup.py
+  ├── backend/
+  │   ├── main.py                   (FastAPI + WebSocket broadcaster)
+  │   └── algorand_stream.py        (Indexer event listener)
+  ├── frontend/
+  │   ├── src/
+  │   │   ├── App.jsx
+  │   │   ├── AgentMesh.jsx         (force-graph, the wow factor)
+  │   │   ├── CortexTerminal.jsx    (live SDK log feed)
+  │   │   ├── ReputationCard.jsx    (SBT score display on hover)
+  │   │   └── DelegationTree.jsx    (visual delegation hierarchy)
+  │   └── package.json
+  ├── demo/
+  │   └── demo.py                   (scripted end-to-end demo)
+  └── README.md
+
+
+================================================================================
+  SECTION 9 — WHAT MAKES THIS PRODUCTION-GRADE (SAY THESE TO JUDGES)
+================================================================================
+
+  1. INSTALLABLE SDK — pip install x402-cortex
+     Any agent framework can import CortexWrapper in 2 lines.
+
+  2. 5 INDEPENDENT SMART CONTRACTS — separation of concerns.
+     Each contract has a single responsibility. Upgradable state
+     via box storage. Immutable logic. This is production pattern.
+
+  3. ZERO EXTERNAL DEPENDENCIES for core flow — no IPFS, no oracle,
+     no third-party API. Everything runs on Algorand + local compute.
+
+  4. GRACEFUL DEGRADATION — if Algorand is unreachable, SDK falls
+     back to in-memory policy checks. Demo never crashes.
+
+  5. ATOMIC TRANSACTIONS — delegation check + payment + reputation
+     update all happen in one Algorand atomic group. All or nothing.
+
+  6. PROTOCOL-AGNOSTIC — works with ANY API returning HTTP 402.
+     Not locked to any specific AI service or model provider.
+
+
+================================================================================
+  FINAL NOTE — THE SENTENCE THAT WINS
+================================================================================
+
+  When the judge says "What did you build?"
+
+  Say:
+
+    "We built the credit bureau for AI agents.
+     Every agent that pays through our system earns a reputation,
+     can delegate authority to sub-agents, and leaves an immutable
+     trail of WHY it made every payment.
+     We didn't build a payment wrapper. We built the trust layer
+     for the entire agent economy. On Algorand. In 24 hours."
+
+  That sentence. Memorize it. Say it exactly once. Then show the demo.
+
+================================================================================
+  HACK>ALGO 2026  |  x402 CORTEX  |  TEAM CLEVERFYRE
+================================================================================
