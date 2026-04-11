@@ -102,10 +102,19 @@ async def poll_new_events() -> list[dict]:
         # Build query kwargs — only fetch transactions after _last_round
         kwargs: dict = {
             "note_prefix": AXIOM_NOTE_PREFIX_RAW,
+            "limit": 50
         }
 
         if _last_round > 0:
             kwargs["min_round"] = _last_round + 1
+        else:
+            try:
+                import algokit_utils
+                alg_client = algokit_utils.AlgorandClient.from_environment()
+                status = alg_client.client.algod.status()
+                kwargs["min_round"] = max(1, status.get("last-round", 1000) - 1000)
+            except Exception:
+                pass
 
         # Execute the Indexer search
         result = indexer.search_transactions(**kwargs)

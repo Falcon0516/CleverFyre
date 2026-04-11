@@ -240,8 +240,10 @@ class AXIOMWrapper:
 
         except Exception as e:
             logger.error("Bootstrap — Funding phase failed: %s", e)
-            if "balance" in str(e).lower():
+            if "balance" in str(e).lower() or "overspend" in str(e).lower():
                  logger.error("  >> ACTION REQUIRED: Fund the Deployer account first at https://bank.testnet.algorand.network/")
+                 raise ValueError("Deployer account out of Testnet ALGO. Please fund your deployer address.")
+            raise
 
         # 2. PolicyVault Initialization
         if self.policy_vault_id > 0:

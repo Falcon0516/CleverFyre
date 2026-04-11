@@ -138,8 +138,18 @@ async def events_ws(ws: WebSocket):
         # truth" principle — no data is ever lost.
         try:
             history_indexer = _get_indexer()
+            try:
+                import algokit_utils
+                alg_client = algokit_utils.AlgorandClient.from_environment()
+                status = alg_client.client.algod.status()
+                min_rnd = max(1, status.get("last-round", 1000) - 1000)
+            except Exception:
+                min_rnd = 0
+
             history_result = history_indexer.search_transactions(
                 note_prefix=AXIOM_NOTE_PREFIX_RAW,
+                min_round=min_rnd,
+                limit=50
             )
             history_txns = history_result.get("transactions", [])
             for tx in history_txns:

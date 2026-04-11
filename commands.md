@@ -385,4 +385,4 @@ curl -s -X POST http://localhost:8000/api/v1/inject-event \
 |------|------|
 | Agent Account | https://testnet.explorer.perawallet.app/address/DCD57XNL6DWMFGGRCET3GM65CKRJQFPMT2W73VH7P5LQRIK62VFOV43XOY |
 | Deployer Account | https://testnet.explorer.perawallet.app/address/2MANOJ5CURDMVSSHKAEQZVBJ37VNTUBNEZNM7CAO6IKL6REYXR3N673BYU |
-| Sample Reasoning Receipt | https://testnet.explorer.perawallet.app/tx/3TPSBSRVLV4XOBTKGPWQNQOI3U264UJHG2Y2SC3FXRVPGPVC6QLQ |
+| Sample Reasoning Receipt | https://testnet.explorer.perawallet.app/tx/N72X6SNC46M5Q367GOI6U7NM5JOZHHJNYFZ54ZEUOIBESB2JZWPQ |

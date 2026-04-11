@@ -47,6 +47,7 @@ class AgentManager:
             logger.info(f"Agent {name} bootstrapped on-chain")
         except Exception as e:
             logger.error(f"Failed to bootstrap agent {name}: {e}")
+            raise Exception(f"Failed to fund agent on Testnet! Please use the Algorand testnet bank to fund your Deployer address. Error: {e}")
 
         self._agents[name] = agent
         logger.info(f"Agent spawned: {name} ({agent.address[:10]}...)")
