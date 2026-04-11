@@ -81,6 +81,7 @@ SEMANTIC_CATEGORIES = [
     ("database", "database query sql records storage retrieval data warehouse"),
     ("compute", "cloud compute processing gpu inference model training serverless"),
     ("communication", "email message notification send contact sms push alert"),
+    ("testing", "mock trial testing prototype developer sandbox laboratory dummy"),
 ]
 
 # Cache for category embeddings (computed once on first use)

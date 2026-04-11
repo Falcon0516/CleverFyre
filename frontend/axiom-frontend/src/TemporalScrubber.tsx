@@ -1,64 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
-interface TemporalScrubberProps {
+interface Props {
   currentRound: number;
   minRound: number;
   maxRound: number;
   onRoundChange: (round: number) => void;
 }
 
-export const TemporalScrubber: React.FC<TemporalScrubberProps> = ({
+export default function TemporalScrubber({
   currentRound,
   minRound,
   maxRound,
   onRoundChange,
-}) => {
-  const [val, setVal] = useState(currentRound);
+}: Props) {
+  const [sliderValue, setSliderValue] = useState(currentRound || maxRound);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLive = currentRound >= maxRound - 1 || currentRound === 0;
 
+  // Sync slider when round changes externally
   useEffect(() => {
-    setVal(currentRound);
+    if (currentRound > 0) {
+      setSliderValue(currentRound);
+    }
   }, [currentRound]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = parseInt(e.target.value);
-    setVal(newVal);
-    setTimeout(() => {
-      onRoundChange(newVal);
-    }, 150);
-  };
+  const handleSliderChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = Number(e.target.value);
+      setSliderValue(val);
 
-  const isLive = val >= maxRound;
-  const percentage = ((val - minRound) / Math.max(1, (maxRound - minRound))) * 100;
+      // Debounce the round change callback
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        onRoundChange(val);
+      }, 300);
+    },
+    [onRoundChange]
+  );
+
+  const handleLiveClick = useCallback(() => {
+    setSliderValue(maxRound);
+    onRoundChange(maxRound);
+  }, [maxRound, onRoundChange]);
+
+  const effectiveMin = minRound || Math.max(0, maxRound - 10000);
+  const effectiveMax = maxRound || 1;
 
   return (
-    <div className="scrubber-container" style={{background: 'transparent', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-      <div className="scrubber-controls">
-        <div className="scrubber-controls-left">
-          <button
-            className={`btn-live-btn interactive ${isLive ? 'active' : ''}`}
-            onClick={() => onRoundChange(maxRound)}
-          >
-            Live {isLive && <span className="active-dot"></span>}
-          </button>
-          
-          <div className="round-display">
-            Round {val.toLocaleString()}
-          </div>
-          {!isLive && <span className="historical-label">⏱ Historical</span>}
-        </div>
-      </div>
+    <div className="scrubber-container">
+      <button
+        className={`btn-live ${isLive ? 'active' : ''}`}
+        onClick={handleLiveClick}
+      >
+        {isLive && <span className="live-dot" />}
+        LIVE
+      </button>
+
+      <span className="round-display">
+        Round {sliderValue > 0 ? sliderValue.toLocaleString() : '—'}
+      </span>
+
+      {!isLive && (
+        <span className="historical-badge">
+          ◷ HISTORICAL
+        </span>
+      )}
 
       <input
         type="range"
-        min={minRound}
-        max={maxRound}
-        value={val}
-        onChange={handleChange}
         className="scrubber-range"
-        style={{
-          background: `linear-gradient(to right, var(--color-primary) ${percentage}%, rgba(0,0,0,0.05) ${percentage}%)`
-        }}
+        min={effectiveMin}
+        max={effectiveMax}
+        value={sliderValue || effectiveMax}
+        onChange={handleSliderChange}
       />
     </div>
   );
-};
+}

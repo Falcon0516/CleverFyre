@@ -16,6 +16,7 @@ Run:
 
 import logging
 import os
+import json
 from typing import Optional
 
 from fastapi import FastAPI
@@ -51,6 +52,85 @@ class SLAResult(BaseModel):
     action: str                        # "released" or "refunded"
     reason: str                        # Human-readable explanation
     score_delta: int = 0               # Reputation score change
+    on_chain_tx: str = ""              # Transaction ID of the on-chain settlement
+
+
+# ─────────────────────────────────────────────────────────────────
+#  ON-CHAIN SETTLEMENT
+# ─────────────────────────────────────────────────────────────────
+
+def _settle_escrow_on_chain(escrow_id_hex: str, passed: bool) -> str:
+    """
+    Call SentinelEscrow.release() or SentinelEscrow.refund() on-chain.
+
+    Args:
+        escrow_id_hex: Hex string of the 32-byte escrow ID.
+        passed: If True, call release(). If False, call refund().
+
+    Returns:
+        Transaction ID of the settlement, or empty string on failure.
+    """
+    sentinel_app_id = int(os.getenv("SENTINEL_ESCROW_ID", "0"))
+    if sentinel_app_id <= 0:
+        logger.info("SentinelEscrow not deployed (ID=0) — skipping on-chain settlement")
+        return ""
+
+    try:
+        from pathlib import Path
+        from algokit_utils import AlgorandClient
+        from algokit_utils.applications.app_client import AppClientMethodCallParams
+
+        # Load the repaired ARC-56 spec
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from axiom_agpp.contracts.client import AXIOMContracts
+
+        spec = AXIOMContracts.load_spec("SentinelEscrow")
+        algo_client = AlgorandClient.from_environment()
+
+        # Load deployer mnemonic as the signer for the Oracle
+        deployer_mnemonic = os.getenv("DEPLOYER_MNEMONIC")
+        sender = None
+        if deployer_mnemonic:
+            try:
+                # Add account and set as default signer
+                deployer_account = algo_client.account.from_mnemonic(mnemonic=deployer_mnemonic)
+                algo_client.account.set_default_signer(deployer_account)
+                sender = deployer_account.address
+            except Exception as e:
+                logger.warning("Failed to set Oracle signer: %s", e)
+
+        app_client = algo_client.client.get_app_client_by_id(
+            app_id=sentinel_app_id,
+            app_spec=spec,
+        )
+
+        method = "release" if passed else "refund"
+        escrow_id_bytes = bytes.fromhex(escrow_id_hex)
+
+        result = app_client.send.call(AppClientMethodCallParams(
+            method=method,
+            args=[escrow_id_bytes],
+            sender=sender
+        ))
+
+        tx_id = getattr(result, "tx_id", "")
+        logger.info(
+            "On-chain escrow %s executed — method=%s, tx_id=%s",
+            escrow_id_hex[:16],
+            method,
+            tx_id,
+        )
+        return tx_id
+
+
+
+
+    except Exception as e:
+        logger.warning(
+            "On-chain escrow settlement failed (non-fatal): %s", e
+        )
+        return ""
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -100,7 +180,7 @@ async def evaluate(req: SLARequest):
             )
         if not req.schema_valid:
             failures.append("schema=invalid")
-        reason = f"SLA failed — {', '.join(failures)}"
+        reason = f"SLA FAILED — {', '.join(failures)}"
         score_delta = 0
 
     logger.info(
@@ -111,22 +191,26 @@ async def evaluate(req: SLARequest):
         reason,
     )
 
-    # TODO: Wire to SentinelEscrow on-chain calls after contract deployment
-    # sentinel_app_id = int(os.getenv("SENTINEL_ESCROW_ID", "0"))
-    # if sentinel_app_id > 0:
-    #     from algokit_utils import AlgorandClient
-    #     client = AlgorandClient.from_environment()
-    #     app_client = client.client.get_app_client_by_id(app_id=sentinel_app_id)
-    #     if passed:
-    #         app_client.call("release", escrow_id=bytes.fromhex(req.escrow_id))
-    #     else:
-    #         app_client.call("refund", escrow_id=bytes.fromhex(req.escrow_id))
+    # Execute on-chain settlement (release or refund)
+    on_chain_tx = _settle_escrow_on_chain(req.escrow_id, passed)
+
+    if on_chain_tx:
+        logger.info(
+            "✅ On-chain %s confirmed: tx=%s",
+            action.upper(),
+            on_chain_tx,
+        )
+    else:
+        logger.info(
+            "⚠️  On-chain settlement skipped (contract not deployed or escrow not found)"
+        )
 
     return SLAResult(
         passed=passed,
         action=action,
         reason=reason,
         score_delta=score_delta,
+        on_chain_tx=on_chain_tx,
     )
 
 

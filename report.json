@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ATK-001",
+    "name": "Gradual Escalation",
+    "succeeded": false,
+    "details": "Blocked at call 6 (amount=1.1391 > cap=1.0)",
+    "recommendation": ""
+  },
+  {
+    "id": "ATK-002",
+    "name": "Domain Spoof",
+    "succeeded": false,
+    "details": "Matched: None score=0.51",
+    "recommendation": ""
+  },
+  {
+    "id": "ATK-003",
+    "name": "Burst Attack (100 micro-payments)",
+    "succeeded": true,
+    "details": "burst_max_calls=5, burst_window_sec=30. Would be caught at call 6",
+    "recommendation": "Set burst_window_sec=10, burst_max_calls=10 for tighter control"
+  },
+  {
+    "id": "ATK-004",
+    "name": "Semantic Confusion",
+    "succeeded": false,
+    "details": "Best match: None at 0.50 (ambiguous=True)",
+    "recommendation": ""
+  },
+  {
+    "id": "ATK-005",
+    "name": "Dead Man Switch Timing Attack",
+    "succeeded": false,
+    "details": "renewal_window_rounds=360 (~24 min). Window is acceptably short",
+    "recommendation": ""
+  },
+  {
+    "id": "ATK-006",
+    "name": "Intent Replay Attack",
+    "succeeded": false,
+    "details": "replay_protection=True",
+    "recommendation": ""
+  }
+]

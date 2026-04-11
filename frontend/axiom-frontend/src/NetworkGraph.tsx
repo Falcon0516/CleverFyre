@@ -1,191 +1,370 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
-import type { PaymentEvent } from './AlgorandStream';
+import type { PaymentEvent, AgentSnapshot } from './AlgorandStream';
+import { fetchState } from './AlgorandStream';
 
-interface NetworkGraphProps {
+interface Props {
   events: PaymentEvent[];
-  onNodeClick: (addr: string) => void;
-  onEdgeClick: (txId: string) => void;
-  historicalRound: number | null;
+  onNodeClick?: (addr: string) => void;
+  onEdgeClick?: (event: PaymentEvent) => void;
+  historicalRound?: number | null;
 }
 
-export const NetworkGraph: React.FC<NetworkGraphProps> = ({ events, onNodeClick, onEdgeClick, historicalRound }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
+interface GraphNode extends d3.SimulationNodeDatum {
+  id: string;
+  tier: number;
+  score: number;
+  payments: number;
+  blocked: number;
+  policyStatus: string;
+}
 
+interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
+  event: PaymentEvent;
+  id: string;
+}
+
+const TIER_COLORS: Record<number, string> = {
+  4: '#00BFFF', // Excellent
+  3: '#00FF7F', // Good
+  2: '#FFD700', // Caution
+  1: '#FF4500', // Restricted
+  0: '#FF0000', // Blacklisted
+  [-1]: '#888888', // Expired
+};
+
+const TIER_LABELS: Record<number, string> = {
+  4: 'EXCELLENT', 3: 'GOOD', 2: 'CAUTION',
+  1: 'RESTRICTED', 0: 'BLACKLISTED', [-1]: 'EXPIRED',
+};
+
+function getTierForScore(score: number): number {
+  if (score >= 800) return 4;
+  if (score >= 600) return 3;
+  if (score >= 400) return 2;
+  if (score >= 200) return 1;
+  return 0;
+}
+
+function getNodeColor(node: GraphNode): string {
+  if (node.policyStatus === 'expired') return TIER_COLORS[-1];
+  return TIER_COLORS[node.tier] || TIER_COLORS[2];
+}
+
+function getEdgeColor(type: string): string {
+  switch (type) {
+    case 'PAYMENT': return 'rgba(255,255,255,0.5)';
+    case 'BLOCKED': return '#FF4444';
+    case 'QUARANTINE': return '#FFD700';
+    case 'WARNING': return '#FFD700';
+    case 'DRIFT': return '#9B59B6';
+    case 'EXPIRED': return '#888888';
+    default: return 'rgba(255,255,255,0.3)';
+  }
+}
+
+export default function NetworkGraph({ events, onNodeClick, onEdgeClick, historicalRound }: Props) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const simRef = useRef<d3.Simulation<GraphNode, GraphLink> | null>(null);
+  const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
+  const [agentMap, setAgentMap] = useState<Record<string, AgentSnapshot>>({});
+
+  // Fetch agent data for historical mode
   useEffect(() => {
-    if (!svgRef.current) return;
-    const width = 800;
-    const height = 800;
-    const svg = d3.select(svgRef.current)
-      .attr('viewBox', `0 0 ${width} ${height}`)
-      .attr('width', '100%')
-      .attr('height', '100%');
-    
-    svg.selectAll('*').remove();
+    if (historicalRound && historicalRound > 0) {
+      fetchState(historicalRound).then(state => {
+        if (state.agents) setAgentMap(state.agents);
+      }).catch(() => {});
+    }
+  }, [historicalRound]);
 
-    const defs = svg.append('defs');
-    
-    const shadowFilter = defs.append('filter').attr('id', 'drop-shadow-graph');
-    shadowFilter.append('feGaussianBlur').attr('in', 'SourceAlpha').attr('stdDeviation', 4);
-    shadowFilter.append('feOffset').attr('dx', 0).attr('dy', 4).attr('result', 'offsetblur');
-    shadowFilter.append('feFlood').attr('flood-color', 'rgba(0, 0, 0, 0.1)');
-    shadowFilter.append('feComposite').attr('in2', 'offsetblur').attr('operator', 'in');
-    const feMerge = shadowFilter.append('feMerge');
-    feMerge.append('feMergeNode');
-    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+  // Track container size
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
 
-    const providerGradient = defs.append('radialGradient').attr('id', 'provider-grad');
-    providerGradient.append('stop').attr('offset', '0%').attr('stop-color', '#ffffff');
-    providerGradient.append('stop').attr('offset', '100%').attr('stop-color', '#f1f5f9');
-
-    const nodesMap = new Map();
-    nodesMap.set('API_PROVIDER', { id: 'API_PROVIDER', type: 'provider', group: 1 });
-    
-    events.forEach(ev => {
-      let tier = 'EXCELLENT';
-      if (ev.sender.startsWith('MMM')) tier = 'CAUTION';
-      if (ev.sender.startsWith('ZZZ')) tier = 'RESTRICTED';
-      if (ev.sender.length < 8) tier = 'EXPIRED'; 
-      
-      if (!nodesMap.has(ev.sender)) {
-        nodesMap.set(ev.sender, { id: ev.sender, type: 'agent', group: 2, tier });
+    const observer = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      if (width > 0 && height > 0) {
+        setDimensions({ width, height });
       }
     });
-    
-    const links = events.map((ev, i) => ({
-      source: ev.sender,
-      target: 'API_PROVIDER',
-      id: ev.tx_id + '-' + i,
-      eventType: ev.type
-    }));
-    
-    const nodes = Array.from(nodesMap.values());
-    
-    const simulation = d3.forceSimulation(nodes as any)
-      .force('link', d3.forceLink(links).id((d: any) => d.id).distance(220))
-      .force('charge', d3.forceManyBody().strength(-800))
-      .force('collide', d3.forceCollide().radius(50))
-      .force('center', d3.forceCenter(width / 2, height / 2));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-    const linkContainer = svg.append('g').attr('class', 'links');
-    const nodeContainer = svg.append('g').attr('class', 'nodes');
+  // Build + render graph
+  useEffect(() => {
+    const svg = d3.select(svgRef.current);
+    const { width, height } = dimensions;
 
-    // Curved edges
-    const link = linkContainer.selectAll('path')
-      .data(links)
-      .enter().append('path')
-      .attr('fill', 'none')
-      .attr('stroke', d => {
-        if (d.eventType === 'BLOCK') return '#ef4444';
-        if (d.eventType === 'QUARANTINE') return '#f59e0b';
-        if (d.eventType === 'CONSENSUS_PENDING') return '#8b5cf6';
-        if (d.eventType === 'DRIFT') return '#8b5cf6';
-        return 'rgba(14, 165, 233, 0.4)';
-      })
-      .attr('stroke-width', 4)
-      .attr('stroke-dasharray', d => {
-        if (d.eventType === 'BLOCK') return '8,8';
-        if (d.eventType === 'QUARANTINE') return '8,8';
-        if (d.eventType === 'CONSENSUS_PENDING') return '15,10';
-        return '0';
-      })
-      .attr('class', d => {
-        if (d.eventType === 'QUARANTINE') return 'pulse-slow interactive';
-        if (d.eventType === 'CONSENSUS_PENDING') return 'dash-rotate interactive';
-        return 'interactive';
-      })
-      .style('cursor', 'pointer')
-      .on('click', (e, d) => onEdgeClick(d.id.split('-')[0]));
+    svg.selectAll('*').remove();
+    svg.attr('width', width).attr('height', height);
 
-    const node = nodeContainer.selectAll('g')
-      .data(nodes)
-      .enter().append('g')
-      .attr('class', 'interactive')
-      .style('cursor', 'pointer')
-      .on('click', (e, d) => onNodeClick(d.id));
+    if (events.length === 0) return;
 
-    const getColor = (tier: string) => {
-      if (tier === 'EXCELLENT') return '#0ea5e9';
-      if (tier === 'GOOD') return '#10b981';
-      if (tier === 'CAUTION') return '#f59e0b';
-      if (tier === 'RESTRICTED') return '#ef4444';
-      if (tier === 'BLACKLISTED') return '#ef4444';
-      if (tier === 'EXPIRED') return '#94a3b8';
-      return '#0ea5e9';
-    };
+    // Build nodes from events + agentMap
+    const nodesMap = new Map<string, GraphNode>();
 
-    // Outer aura
-    node.append('circle')
-      .attr('r', d => d.id === 'API_PROVIDER' ? 45 : 30)
-      .attr('fill', 'none')
-      .attr('stroke', d => d.id === 'API_PROVIDER' ? '#cbd5e1' : getColor(d.tier))
-      .attr('stroke-width', 8)
-      .attr('opacity', 0.2)
-      .style('filter', 'blur(6px)')
-      .attr('class', d => {
-        if (d.tier === 'CAUTION') return 'pulse-slow';
-        if (d.tier === 'RESTRICTED') return 'pulse-fast';
-        return '';
-      });
-
-    // Inner node solid body
-    node.append('circle')
-      .attr('r', d => d.id === 'API_PROVIDER' ? 30 : 20)
-      .attr('fill', d => d.id === 'API_PROVIDER' ? 'url(#provider-grad)' : 'white')
-      .attr('stroke', d => d.id === 'API_PROVIDER' ? '#94a3b8' : getColor(d.tier))
-      .attr('stroke-width', 4)
-      .style('filter', 'url(#drop-shadow-graph)')
-      .on('mouseover', function() { d3.select(this).transition().duration(200).attr('r', (d: any) => d.id === 'API_PROVIDER' ? 35 : 24) })
-      .on('mouseout', function() { d3.select(this).transition().duration(200).attr('r', (d: any) => d.id === 'API_PROVIDER' ? 30 : 20) });
-
-    node.append('text')
-      .text(d => d.id === 'API_PROVIDER' ? 'AXIOM CORE' : d.id.substring(0, 6))
-      .attr('text-anchor', 'middle')
-      .attr('dy', d => d.id === 'API_PROVIDER' ? 55 : 45)
-      .attr('fill', '#475569')
-      .style('font-family', 'var(--font-sans)')
-      .style('font-weight', '700')
-      .style('font-size', '12px');
-
-    simulation.on('tick', () => {
-      link.attr('d', (d: any) => {
-        const dx = d.target.x - d.source.x;
-        const dy = d.target.y - d.source.y;
-        const dr = Math.sqrt(dx * dx + dy * dy) * 1.5; 
-        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-      });
-      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+    events.forEach(ev => {
+      if (ev.sender && !nodesMap.has(ev.sender)) {
+        const snap = agentMap[ev.sender];
+        nodesMap.set(ev.sender, {
+          id: ev.sender,
+          tier: snap ? getTierForScore(snap.reputation_score) : 2,
+          score: snap?.reputation_score ?? 500,
+          payments: snap?.payments_made ?? 0,
+          blocked: snap?.payments_blocked ?? 0,
+          policyStatus: snap?.policy_status ?? 'active',
+        });
+      }
     });
 
-    setTimeout(() => {
-      link.each(function(d: any) {
-        if(d.eventType !== 'PAYMENT') return;
-        const path = this as SVGPathElement;
-        const l = path.getTotalLength();
-        if (l === 0) return;
-        
-        svg.append('circle')
-          .attr('r', 6)
-          .attr('fill', '#0ea5e9')
-          .style('filter', 'url(#drop-shadow-graph)')
-          .transition()
-          .duration(1200)
-          .ease(d3.easeCubicInOut)
-          .attrTween('transform', () => {
-            return function(t) {
-              const p = path.getPointAtLength(t * l);
-              return `translate(${p.x},${p.y})`;
-            };
-          })
-          .remove();
-      });
-    }, 100);
+    // Update counters from events
+    events.forEach(ev => {
+      const node = nodesMap.get(ev.sender);
+      if (node) {
+        if (ev.type === 'BLOCKED' || ev.type === 'QUARANTINE') {
+          node.blocked++;
+        } else {
+          node.payments++;
+        }
+      }
+    });
 
-  }, [events, historicalRound]);
+    const nodes = Array.from(nodesMap.values());
+    if (nodes.length === 0) return;
+
+    // Build links (last 100 events to keep graph manageable)
+    const recentEvents = events.slice(-100);
+    const links: GraphLink[] = [];
+
+    recentEvents.forEach((ev, i) => {
+      const sourceId = ev.sender;
+      // For visualization: connect to a "hub" if we can't detect receiver
+      // Use the second most common sender as receiver, or first different node
+      const receiver = ev.receiver || (
+        nodes.length > 1
+          ? nodes.find(n => n.id !== sourceId)?.id || sourceId
+          : sourceId
+      );
+
+      if (receiver !== sourceId && nodesMap.has(sourceId)) {
+        // Ensure receiver node exists
+        if (!nodesMap.has(receiver)) {
+          nodesMap.set(receiver, {
+            id: receiver,
+            tier: 3, score: 600, payments: 0, blocked: 0, policyStatus: 'active',
+          });
+        }
+
+        links.push({
+          source: sourceId,
+          target: receiver,
+          event: ev,
+          id: `${ev.tx_id || i}`,
+        });
+      }
+    });
+
+    // If only one node, add an AXIOM CORE hub
+    if (nodes.length === 1) {
+      const coreNode: GraphNode = {
+        id: 'AXIOM_CORE',
+        tier: 4, score: 1000, payments: 0, blocked: 0, policyStatus: 'active',
+      };
+      nodesMap.set('AXIOM_CORE', coreNode);
+      nodes.push(coreNode);
+
+      recentEvents.forEach((ev, i) => {
+        links.push({
+          source: ev.sender,
+          target: 'AXIOM_CORE',
+          event: ev,
+          id: `core-${ev.tx_id || i}`,
+        });
+      });
+    }
+
+    const allNodes = Array.from(nodesMap.values());
+
+    // SVG defs
+    const defs = svg.append('defs');
+
+    // Glow filter
+    const filter = defs.append('filter').attr('id', 'glow');
+    filter.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'blur');
+    const feMerge = filter.append('feMerge');
+    feMerge.append('feMergeNode').attr('in', 'blur');
+    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+    // Big glow for nodes
+    const bigGlow = defs.append('filter').attr('id', 'bigGlow');
+    bigGlow.append('feGaussianBlur').attr('stdDeviation', '6').attr('result', 'blur');
+    const bm = bigGlow.append('feMerge');
+    bm.append('feMergeNode').attr('in', 'blur');
+    bm.append('feMergeNode').attr('in', 'SourceGraphic');
+
+    // Container group
+    const g = svg.append('g');
+
+    // Links
+    const linkGroup = g.append('g').attr('class', 'links');
+    const linkElements = linkGroup.selectAll<SVGLineElement, GraphLink>('line')
+      .data(links.slice(-50)) // limit visible edges
+      .enter()
+      .append('line')
+      .attr('stroke', d => getEdgeColor(d.event.type))
+      .attr('stroke-width', d => {
+        if (d.event.type === 'BLOCKED' || d.event.type === 'QUARANTINE') return 1;
+        return Math.min(2, Math.max(0.5, d.event.amount / 1000000));
+      })
+      .attr('stroke-dasharray', d => {
+        if (d.event.type === 'BLOCKED') return '4,4';
+        if (d.event.type === 'QUARANTINE') return '6,3';
+        return 'none';
+      })
+      .attr('opacity', 0.6)
+      .style('cursor', 'pointer')
+      .on('click', (_, d) => onEdgeClick?.(d.event));
+
+    // Nodes
+    const nodeGroup = g.append('g').attr('class', 'nodes');
+    const nodeElements = nodeGroup.selectAll<SVGGElement, GraphNode>('g')
+      .data(allNodes)
+      .enter()
+      .append('g')
+      .style('cursor', 'pointer')
+      .on('click', (_, d) => onNodeClick?.(d.id));
+
+    // Outer glow ring
+    nodeElements.append('circle')
+      .attr('r', 20)
+      .attr('fill', 'none')
+      .attr('stroke', d => getNodeColor(d))
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.3)
+      .attr('filter', 'url(#bigGlow)');
+
+    // Main node circle
+    nodeElements.append('circle')
+      .attr('r', d => d.id === 'AXIOM_CORE' ? 14 : 10)
+      .attr('fill', d => getNodeColor(d))
+      .attr('filter', 'url(#glow)')
+      .attr('opacity', 0.9);
+
+    // Node labels
+    nodeElements.append('text')
+      .attr('dy', d => (d.id === 'AXIOM_CORE' ? 26 : 22))
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'rgba(255,255,255,0.6)')
+      .attr('font-size', '9px')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .text(d => d.id === 'AXIOM_CORE' ? 'AXIOM' : d.id.slice(0, 8) + '...');
+
+    // Score labels
+    nodeElements.append('text')
+      .attr('dy', d => (d.id === 'AXIOM_CORE' ? 36 : 32))
+      .attr('text-anchor', 'middle')
+      .attr('fill', d => getNodeColor(d))
+      .attr('font-size', '8px')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('opacity', 0.7)
+      .text(d => d.id === 'AXIOM_CORE' ? '' : `T${d.tier} · ${d.score}`);
+
+    // Force simulation
+    const simulation = d3.forceSimulation<GraphNode>(allNodes)
+      .force('link', d3.forceLink<GraphNode, GraphLink>(links.slice(-50))
+        .id(d => d.id)
+        .distance(100))
+      .force('charge', d3.forceManyBody().strength(-200))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide(35))
+      .on('tick', () => {
+        linkElements
+          .attr('x1', d => (d.source as GraphNode).x || 0)
+          .attr('y1', d => (d.source as GraphNode).y || 0)
+          .attr('x2', d => (d.target as GraphNode).x || 0)
+          .attr('y2', d => (d.target as GraphNode).y || 0);
+
+        nodeElements.attr('transform', d =>
+          `translate(${d.x || 0},${d.y || 0})`
+        );
+      });
+
+    simRef.current = simulation;
+
+    // Animate traveling payment dots for recent events
+    const recentPayments = recentEvents.filter(e =>
+      e.type === 'PAYMENT' && links.some(l => l.event.tx_id === e.tx_id)
+    ).slice(-5);
+
+    recentPayments.forEach((ev, i) => {
+      const link = links.find(l => l.event.tx_id === ev.tx_id);
+      if (!link) return;
+
+      setTimeout(() => {
+        const dot = g.append('circle')
+          .attr('r', 3)
+          .attr('fill', '#ffffff')
+          .attr('filter', 'url(#glow)')
+          .attr('opacity', 1);
+
+        // Animate along a rough path
+        dot.transition()
+          .duration(1000)
+          .attrTween('cx', () => {
+            const s = link.source as GraphNode;
+            const t = link.target as GraphNode;
+            return (tt: number) => String((s.x || 0) + ((t.x || 0) - (s.x || 0)) * tt);
+          })
+          .attrTween('cy', () => {
+            const s = link.source as GraphNode;
+            const t = link.target as GraphNode;
+            return (tt: number) => String((s.y || 0) + ((t.y || 0) - (s.y || 0)) * tt);
+          })
+          .attr('opacity', 0)
+          .remove();
+      }, i * 200);
+    });
+
+    // Add drag
+    nodeElements.call(
+      d3.drag<SVGGElement, GraphNode>()
+        .on('start', (event, d) => {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        })
+        .on('drag', (event, d) => {
+          d.fx = event.x;
+          d.fy = event.y;
+        })
+        .on('end', (event, d) => {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        })
+    );
+
+    return () => {
+      simulation.stop();
+    };
+  }, [events, dimensions, agentMap, historicalRound, onNodeClick, onEdgeClick]);
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <svg ref={svgRef}></svg>
+    <div className="graph-container" ref={containerRef}>
+      <svg ref={svgRef} />
+      {events.length === 0 && (
+        <div className="graph-empty">
+          <div className="pulse-ring" />
+          <span>AWAITING EVENTS</span>
+          <span style={{ fontSize: 10, opacity: 0.5 }}>
+            Connect backend → ws://localhost:8000/ws/events
+          </span>
+        </div>
+      )}
     </div>
   );
-};
+}

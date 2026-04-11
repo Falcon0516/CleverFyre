@@ -1,0 +1,1 @@
+{"agent_id": "ABCDEFG12345", "api_selection_reason": "HTTP 402 payment required for API access", "api_url": "http://localhost:8000/api/v1/mock-402", "chain_id": null, "expected_output_schema": {"status": 200, "type": "json"}, "policy_commitment": "5b4a78c...", "schema": "agpp/v1", "task_canonical": "Gather semiconductor data", "timestamp_round": 451}

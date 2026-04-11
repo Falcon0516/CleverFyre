@@ -165,8 +165,11 @@ class ReputationClient:
             return ""
 
         try:
+            from axiom_agpp.contracts.client import AXIOMContracts
+            spec = AXIOMContracts.load_spec("ReputationLedger")
             app_client = self.client.client.get_app_client_by_id(
                 app_id=self.app_id,
+                app_spec=spec
             )
 
             result = app_client.call(

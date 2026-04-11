@@ -58,7 +58,7 @@ def deploy_all(network: str = "localnet") -> dict[str, int]:
             "Run: algokit localnet accounts   — then copy a mnemonic to .env"
         )
 
-    deployer = client.account.from_mnemonic(mnemonic)
+    deployer = client.account.from_mnemonic(mnemonic=mnemonic)
     log.info(f"Deployer address: {deployer.address}")
 
     ids: dict[str, int] = {}

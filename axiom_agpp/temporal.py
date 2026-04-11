@@ -33,8 +33,8 @@ from algosdk.v2client import indexer as idx_client
 
 logger = logging.getLogger(__name__)
 
-# Base64-encoded Algorand note prefix for AXIOM transactions
-AXIOM_NOTE_PREFIX = base64.b64encode(b"x402:axiom:").decode()
+# Raw bytes prefix for filtering AXIOM transactions via Indexer
+AXIOM_NOTE_PREFIX = b"x402:axiom:"
 
 
 # ─────────────────────────────────────────────────────────────────

@@ -1,80 +1,141 @@
-import { useState } from 'react';
-import { useAlgorandStream } from './AlgorandStream';
+import { useState, useCallback } from 'react';
+import { useAlgorandStream, fetchState } from './AlgorandStream';
 import type { PaymentEvent } from './AlgorandStream';
-import { NetworkGraph } from './NetworkGraph';
-import { AxiomTerminal } from './AxiomTerminal';
-import { SystemVitals } from './SystemVitals';
-import { TemporalScrubber } from './TemporalScrubber';
-import { IntentModal } from './IntentModal';
+import NetworkGraph from './NetworkGraph';
+import AxiomTerminal from './AxiomTerminal';
+import SystemVitals from './SystemVitals';
+import TemporalScrubber from './TemporalScrubber';
+import IntentModal from './IntentModal';
+import AgentPlayground from './AgentPlayground';
 
-function App() {
-  const { events } = useAlgorandStream();
-  const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
+export default function App() {
+  const { events, isConnected, currentRound } = useAlgorandStream();
   const [historicalRound, setHistoricalRound] = useState<number | null>(null);
-  const [currentRound, setCurrentRound] = useState<number>(28041337);
+  const [selectedEvent, setSelectedEvent] = useState<PaymentEvent | null>(null);
+  const [historicalEvents, setHistoricalEvents] = useState<PaymentEvent[]>([]);
 
-  const handleNodeClick = (addr: string) => {
-    console.log('Node clicked', addr);
-  };
+  // Determine which events to display
+  const displayEvents = historicalRound && historicalRound > 0
+    ? historicalEvents
+    : events;
 
-  const handleEdgeClick = (txId: string) => {
-    setSelectedTxId(txId);
-  };
+  // Determine the round to display
+  const displayRound = historicalRound && historicalRound > 0
+    ? historicalRound
+    : currentRound || (events.length > 0 ? events[events.length - 1].round : 0);
 
-  const handleEventClick = (ev: PaymentEvent) => {
-    setSelectedTxId(ev.tx_id);
-  };
+  // Min/max round for scrubber
+  const minRound = events.length > 0 ? events[0].round : 0;
+  const maxRound = currentRound || (events.length > 0 ? events[events.length - 1].round : 0);
 
-  const handleRoundChange = (round: number) => {
+  // Handle temporal scrubber round change
+  const handleRoundChange = useCallback(async (round: number) => {
+    if (round >= maxRound - 1 || round === 0) {
+      // Snap to live mode
+      setHistoricalRound(null);
+      setHistoricalEvents([]);
+      return;
+    }
+
     setHistoricalRound(round);
-    setCurrentRound(round);
-  };
+
+    // Fetch historical state from backend
+    try {
+      const state = await fetchState(round);
+      if (state.events) {
+        setHistoricalEvents(state.events);
+      }
+    } catch (e) {
+      console.error('[AXIOM] Temporal fetch failed:', e);
+    }
+  }, [maxRound]);
+
+  const handleNodeClick = useCallback((addr: string) => {
+    console.log('[AXIOM] Node clicked:', addr);
+  }, []);
+
+  const handleEdgeClick = useCallback((event: PaymentEvent) => {
+    setSelectedEvent(event);
+  }, []);
+
+  const handleEventClick = useCallback((event: PaymentEvent) => {
+    setSelectedEvent(event);
+  }, []);
+
+  const handleApprove = useCallback((escrowId: string) => {
+    console.log('[AXIOM] Approve quarantine:', escrowId);
+    // TODO: POST to backend /api/v1/approve
+  }, []);
+
+  const handleReject = useCallback((escrowId: string) => {
+    console.log('[AXIOM] Reject quarantine:', escrowId);
+    // TODO: POST to backend /api/v1/reject
+  }, []);
 
   return (
     <div className="axiom-app">
-      <div className="glass-panel app-header">
-        <div className="header-brand">AXIOM Dashboard</div>
-        <div className="header-round">Block Round: {currentRound.toLocaleString()}</div>
-        <div className="header-status">
-          LOCALNET
-          <div className="status-dot"></div>
+      {/* Header */}
+      <header className="app-header">
+        <div className="header-brand">AXIOM</div>
+        <div className="header-round">
+          {displayRound > 0
+            ? `Block ${displayRound.toLocaleString()}`
+            : 'Awaiting blocks…'}
         </div>
-      </div>
-      
+        <div className={`header-status ${isConnected ? 'connected' : 'disconnected'}`}>
+          <span className={`status-dot ${isConnected ? '' : 'off'}`} />
+          {isConnected ? 'STREAMING' : 'OFFLINE'}
+        </div>
+      </header>
+
+      {/* Main 3-Panel Layout */}
       <div className="main-layout">
-        <div className="glass-panel panel left-panel">
-          <NetworkGraph 
-            events={events} 
-            onNodeClick={handleNodeClick} 
+        {/* LEFT — Network Graph */}
+        <div className="panel left-panel">
+          <NetworkGraph
+            events={displayEvents}
+            onNodeClick={handleNodeClick}
             onEdgeClick={handleEdgeClick}
             historicalRound={historicalRound}
           />
         </div>
-        <div className="glass-panel panel center-panel">
-          <AxiomTerminal events={events} onEventClick={handleEventClick} />
-        </div>
-        <div className="glass-panel panel right-panel">
-          <SystemVitals 
-            onApprove={(id) => console.log('Approve', id)}
-            onReject={(id) => console.log('Reject', id)}
+
+        {/* CENTER — Live Feed Terminal */}
+        <div className="panel center-panel">
+          <AxiomTerminal
+            events={displayEvents}
+            onEventClick={handleEventClick}
           />
         </div>
+
+        {/* RIGHT — System Vitals + Agent Playground */}
+        <div className="panel right-panel">
+          <SystemVitals
+            events={events}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+          <AgentPlayground events={events} />
+        </div>
       </div>
-      
-      <div className="glass-panel bottom-panel">
-        <TemporalScrubber 
-          currentRound={currentRound}
-          minRound={28000000}
-          maxRound={28041337}
+
+      {/* Bottom — Temporal Scrubber */}
+      <div className="bottom-panel">
+        <TemporalScrubber
+          currentRound={displayRound}
+          minRound={minRound}
+          maxRound={maxRound}
           onRoundChange={handleRoundChange}
         />
       </div>
-      
-      {selectedTxId && (
-        <IntentModal txId={selectedTxId} onClose={() => setSelectedTxId(null)} />
+
+      {/* Intent Modal */}
+      {selectedEvent && (
+        <IntentModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
     </div>
   );
 }
-
-export default App;

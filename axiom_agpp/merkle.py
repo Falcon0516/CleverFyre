@@ -48,20 +48,22 @@ class MerkleTree:
             return [[]]
 
         layer = self.leaves[:]
-        tree = [layer]
+        tree = []
 
         while len(layer) > 1:
             # Pad odd layers by duplicating the last node
             if len(layer) % 2 == 1:
                 layer = layer + [layer[-1]]
+            
+            tree.append(layer)
 
             # Hash pairs to build the next layer
             layer = [
                 _h(layer[i] + layer[i + 1])
                 for i in range(0, len(layer), 2)
             ]
-            tree.append(layer)
 
+        tree.append(layer)
         return tree
 
     def get_root(self) -> bytes:

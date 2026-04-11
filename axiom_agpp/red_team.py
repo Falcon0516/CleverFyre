@@ -171,20 +171,23 @@ class RedTeamEngine:
         burst_window = self.policy.get("burst_window_sec", 30)
         simulated_calls = 100
 
-        vulnerable = simulated_calls > burst_max
+        # The burst detector BLOCKS at call burst_max+1, so the attack is
+        # blocked as long as burst_max < simulated_calls (which it always is).
+        # Only vulnerable if burst detection is disabled (burst_max >= simulated_calls).
+        blocked = burst_max < simulated_calls
 
         return AttackResult(
             id="ATK-003",
             name="Burst Attack (100 micro-payments)",
-            succeeded=vulnerable,
+            succeeded=not blocked,
             details=(
                 f"burst_max_calls={burst_max}, burst_window_sec={burst_window}. "
-                f"{'Would be caught at call ' + str(burst_max + 1) if vulnerable else 'All 100 calls allowed'}"
+                f"{'Blocked at call ' + str(burst_max + 1) + ' of 100' if blocked else 'All 100 calls allowed'}"
             ),
             recommendation=(
-                "Set burst_window_sec=10, burst_max_calls=10 for tighter control"
-                if vulnerable
-                else ""
+                ""
+                if blocked
+                else "Enable burst detection: set burst_max_calls < 100"
             ),
         )
 

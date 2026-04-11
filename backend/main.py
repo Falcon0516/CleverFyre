@@ -26,9 +26,14 @@ import logging
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Header
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.event_normalizer import poll_new_events, get_last_round
+from backend.event_normalizer import (
+    poll_new_events, get_last_round,
+    _get_indexer, _normalize, AXIOM_NOTE_PREFIX_RAW,
+)
+from backend.agent_manager import manager as agent_manager
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +131,28 @@ async def events_ws(ws: WebSocket):
     )
 
     try:
+        # ── REPLAY HISTORY ──────────────────────────────────────
+        # When a new client connects (or page refreshes), send ALL
+        # historical AXIOM events from the blockchain so the dashboard
+        # starts fully populated. This is the "chain is the source of
+        # truth" principle — no data is ever lost.
+        try:
+            history_indexer = _get_indexer()
+            history_result = history_indexer.search_transactions(
+                note_prefix=AXIOM_NOTE_PREFIX_RAW,
+            )
+            history_txns = history_result.get("transactions", [])
+            for tx in history_txns:
+                event = _normalize(tx)
+                await ws.send_text(json.dumps(event))
+            logger.info(
+                "Replayed %d historical events to client id=%d",
+                len(history_txns), client_id,
+            )
+        except Exception as e:
+            logger.warning("History replay failed: %s", e)
+
+        # ── LIVE POLLING LOOP ───────────────────────────────────
         while True:
             # Poll Algorand Indexer for new AXIOM transactions
             events = await poll_new_events()
@@ -356,14 +383,28 @@ async def inject_event(event: InjectedEvent):
 # -----------------------------------------------------------------
 
 @app.get("/api/v1/mock-402")
-async def mock_402(x_payment: Opt[str] = Header(None)):
+async def mock_402(
+    x_payment: Opt[str] = Header(None),
+    delay_ms: int = 0,
+):
     """
     Simulate an HTTP 402 Payment Required response.
 
     If 'x-payment' header is present, we simulate a successful
     authenticated/paid request and return 200 OK.
     Otherwise, we return 402 Payment Required to trigger the AXIOM flow.
+
+    Args:
+        delay_ms: Optional artificial delay in milliseconds to simulate
+                  a slow API server (for SLA failure testing).
     """
+    import asyncio
+
+    # Apply artificial delay if requested (for SLA failure demos)
+    if delay_ms > 0:
+        logger.info("Injecting artificial delay of %dms to simulate slow API", delay_ms)
+        await asyncio.sleep(delay_ms / 1000.0)
+
     if x_payment:
         logger.info("Payment header detected: %s. Releasing resource.", x_payment[:16])
         return {
@@ -372,6 +413,19 @@ async def mock_402(x_payment: Opt[str] = Header(None)):
             "data": {"temp_c": 28.5, "city": "Mumbai", "escrow_id": x_payment}
         }
 
+    # Use the deployer address from environment as a valid provider address
+    import os
+    from algosdk.mnemonic import to_private_key
+    from algosdk.account import address_from_private_key
+    deployer_mnemonic = os.getenv("DEPLOYER_MNEMONIC")
+    provider_addr = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+    if deployer_mnemonic:
+        try:
+            sk = to_private_key(deployer_mnemonic)
+            provider_addr = address_from_private_key(sk)
+        except Exception:
+            pass
+
     from fastapi.responses import JSONResponse
     return JSONResponse(
         status_code=402,
@@ -379,7 +433,7 @@ async def mock_402(x_payment: Opt[str] = Header(None)):
             "error": "Payment Required",
             "payment": {
                 "amount_algo": 0.1,
-                "provider_address": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+                "provider_address": provider_addr,
                 "resource": "/api/v1/weather/current",
                 "sla": {
                     "max_latency_ms": 2000,
@@ -389,7 +443,71 @@ async def mock_402(x_payment: Opt[str] = Header(None)):
             "accept": "x-payment",
         },
         headers={
-            "WWW-Authenticate": 'AXIOM realm="axiom-localnet" amount="100000" provider="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"',
+            'WWW-Authenticate': f'AXIOM realm="axiom-localnet" amount="100000" provider="{provider_addr}"',
+        },
+    )
+
+
+# -----------------------------------------------------------------
+#  REST ENDPOINT — /api/v1/mock-sla-fail (guaranteed SLA failure)
+# -----------------------------------------------------------------
+
+@app.get("/api/v1/mock-sla-fail")
+async def mock_sla_fail(x_payment: Opt[str] = Header(None)):
+    """
+    A deliberately slow API endpoint that ALWAYS exceeds the SLA threshold.
+
+    This endpoint waits 3 seconds before responding, guaranteeing that
+    the SLA Oracle will flag it as FAILED and trigger an automatic
+    on-chain REFUND via SentinelEscrow.
+
+    Used for demonstrating Feature 4 (Sentinel Escrow) to judges.
+    """
+    import asyncio
+
+    if x_payment:
+        # Simulate a slow API — 3 second delay (SLA threshold is 2 seconds)
+        logger.warning("⏳ SLA-FAIL endpoint: Deliberately stalling for 3 seconds...")
+        await asyncio.sleep(3.0)
+
+        logger.warning("⏳ SLA-FAIL endpoint: Responding after intentional delay")
+        return {
+            "status": "success",
+            "message": "Data delivered (but too slowly — SLA breached).",
+            "data": {"temp_c": 28.5, "city": "Mumbai", "sla_warning": "RESPONSE_DELAYED"},
+        }
+
+    # Use the deployer address from environment as a valid provider address
+    import os
+    from algosdk.mnemonic import to_private_key
+    from algosdk.account import address_from_private_key
+    deployer_mnemonic = os.getenv("DEPLOYER_MNEMONIC")
+    provider_addr = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+    if deployer_mnemonic:
+        try:
+            sk = to_private_key(deployer_mnemonic)
+            provider_addr = address_from_private_key(sk)
+        except Exception:
+            pass
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=402,
+        content={
+            "error": "Payment Required",
+            "payment": {
+                "amount_algo": 0.1,
+                "provider_address": provider_addr,
+                "resource": "/api/v1/slow-data",
+                "sla": {
+                    "max_latency_ms": 2000,
+                    "min_status": 200,
+                },
+            },
+            "accept": "x-payment",
+        },
+        headers={
+            'WWW-Authenticate': f'AXIOM realm="axiom-localnet" amount="100000" provider="{provider_addr}"',
         },
     )
 
@@ -429,6 +547,53 @@ async def trigger_agent():
     except Exception as e:
         logger.error("Failed to trigger agent: %s", e)
         return {"status": "error", "message": str(e)}
+
+# -----------------------------------------------------------------
+#  AGENT ORCHESTRATION — /api/v1/agents
+# -----------------------------------------------------------------
+
+class SpawnAgentRequest(BaseModel):
+    name: str
+    role: str = "researcher"
+    task: str = "Perform market analysis"
+    groq_api_key: Optional[str] = None
+
+class DispatchRequest(BaseModel):
+    agent_name: str
+    scenario: str  # 'market_data' | 'weather_data' | 'spam_attack'
+
+@app.get("/api/v1/agents")
+async def list_agents():
+    """List all active spawned agents."""
+    return {"status": "ok", "agents": agent_manager.list_agents()}
+
+@app.post("/api/v1/agents/spawn")
+async def spawn_agent(req: SpawnAgentRequest):
+    """Spawn a new autonomous Groq-powered agent."""
+    agent = agent_manager.spawn_agent(
+        name=req.name,
+        role=req.role,
+        task=req.task,
+        api_key=req.groq_api_key
+    )
+    return {"status": "ok", "agent": agent.to_dict()}
+
+@app.post("/api/v1/agents/dispatch")
+async def dispatch_agent(req: DispatchRequest):
+    """Trigger a scenario for a specific agent."""
+    agent = agent_manager.get_agent(req.agent_name)
+    if not agent:
+        return JSONResponse(status_code=404, content={"error": "Agent not found"})
+    
+    # Run scenario in background task to avoid blocking the API
+    # The AXIOM protocol transactions will happen autonomously.
+    asyncio.create_task(asyncio.to_thread(agent.run_scenario, req.scenario))
+    
+    return {
+        "status": "dispatched",
+        "agent": req.agent_name,
+        "scenario": req.scenario
+    }
 
 # -----------------------------------------------------------------
 #  HEALTH CHECK

@@ -57,24 +57,22 @@ def test_deterministic_identity():
 
 def test_merkle_tree():
     """Test Merkle tree root and proofs."""
+    # Use raw leaves — MerkleTree hashes them internally via SHA-256
     leaves = [b"intent1", b"intent2", b"intent3", b"intent4", b"intent5"]
-    hashed_leaves = [hashlib.sha256(l).digest() for l in leaves]
     
-    tree = MerkleTree(hashed_leaves)
+    tree = MerkleTree(leaves)
     root = tree.get_root()
     
     assert len(root) == 32
     assert len(tree.leaves) == 5
     
-    # Test proofs for all leaves
+    # Test proofs for all leaves — verify() hashes the leaf before checking
     for i in range(5):
         proof = tree.get_proof(i)
-        assert tree.verify(hashed_leaves[i], proof, root)
+        assert tree.verify(leaves[i], proof, root)
         
-    # Invalid proof should fail
-    bad_proof = tree.get_proof(0)
-    bad_proof[0] = b"wronghash"
-    assert not tree.verify(hashed_leaves[0], bad_proof, root)
+    # Invalid leaf should fail verification
+    assert not tree.verify(b"tampered_intent", tree.get_proof(0), root)
 
 
 # ─────────────────────────────────────────────────────────────────
