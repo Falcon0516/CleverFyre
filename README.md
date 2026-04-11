@@ -133,14 +133,7 @@ e.print_report(e.run_all())
 
 ## 📦 Live Deployment & Package
 
-Because AXIOM is an infrastructure-level Agentic Payment Protocol and SDK—rather than a traditional centralized web application—there is no single "Live Web App" frontend URL to link to. 
-
-Instead, the protocol is deployed natively to the **Algorand Testnet**, and developers consume it by integrating the officially published Python package into their own autonomous agents.
-
-**Install the SDK via PyPI:**
-```bash
-pip install axiom-agpp
-```
+AXIOM is an infrastructure-level Agentic Payment Protocol deployed natively to the **Algorand Testnet**, consumed by developers via the Python SDK: `pip install axiom-agpp`
 
 **Verify the Live Protocol on Testnet:**
 You can verify the live, working infrastructure by viewing a recently generated **Reasoning Receipt** directly on the Algorand blockchain explorer:
