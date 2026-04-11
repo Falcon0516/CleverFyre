@@ -2,9 +2,9 @@
 
 ![AXIOM Banner](https://via.placeholder.com/1200x300.png?text=AXIOM+Agentic+Payment+Protocol)
 
-AXIOM is the first unified, on-chain safety and governance layer for autonomous AI agents. Built on the Algorand Testnet, AXIOM enforces strict spending policies, semantic routing, anomaly detection, and SLA guarantees before any agent can execute an API payment. 
+AXIOM is a comprehensive on-chain safety and governance layer designed to enhance HTTP 402 client wrappers for autonomous AI agents. While standard x402 implementations provide basic payment routing, they lack critical protections against runaway AI spending, API scams, and inside-threat behavioral drift. 
 
-Every autonomous transaction is anchored to the Algorand blockchain with an immutable **Reasoning Receipt**, proving cryptographically exactly *why* an AI spent funds, while protecting the agent from malicious APIs via an auto-refunding SLA Oracle.
+AXIOM bridges this gap by intercepting x402 responses and executing a rigorous 11-step pipeline built on Algorand Smart Contracts. It enforces strict mathematical spending policies, AI-powered semantic API routing to prevent budget overflow, and multi-dimensional anomaly detection. Every transaction is anchored to the Algorand Testnet with an immutable **Reasoning Receipt**, providing verifiable proof of why an AI spent funds, while SentinelEscrow automatically protects the agent via an SLA Oracle that refunds payments if the destination API fails to deliver.
 
 ---
 
