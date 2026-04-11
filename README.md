@@ -130,4 +130,21 @@ e.print_report(e.run_all())
 *For an exhaustive list of all 11 test commands, please refer to the included `commands.md` file!*
 
 ---
+
+## 📦 Live Deployment & Package
+
+Because AXIOM is an infrastructure-level Agentic Payment Protocol and SDK—rather than a traditional centralized web application—there is no single "Live Web App" frontend URL to link to. 
+
+Instead, the protocol is deployed natively to the **Algorand Testnet**, and developers consume it by integrating the officially published Python package into their own autonomous agents.
+
+**Install the SDK via PyPI:**
+```bash
+pip install axiom-agpp
+```
+
+**Verify the Live Protocol on Testnet:**
+You can verify the live, working infrastructure by viewing a recently generated **Reasoning Receipt** directly on the Algorand blockchain explorer:
+[https://testnet.explorer.perawallet.app/tx/N72X6SNC46M5Q367GOI6U7NM5JOZHHJNYFZ54ZEUOIBESB2JZWPQ](https://testnet.explorer.perawallet.app/tx/N72X6SNC46M5Q367GOI6U7NM5JOZHHJNYFZ54ZEUOIBESB2JZWPQ)
+
+---
 **Built with ❤️ for HACK.ALGO 2026**
