@@ -4,7 +4,7 @@
 
 AXIOM is a comprehensive on-chain safety and governance layer designed to enhance HTTP 402 client wrappers for autonomous AI agents. While standard x402 implementations provide basic payment routing, they lack critical protections against runaway AI spending, API scams, and inside-threat behavioral drift. 
 
-AXIOM bridges this gap by intercepting x402 responses and executing a rigorous 11-step pipeline built on Algorand Smart Contracts. It enforces strict mathematical spending policies, AI-powered semantic API routing to prevent budget overflow, and multi-dimensional anomaly detection. Every transaction is anchored to the Algorand Testnet with an immutable **Reasoning Receipt**, providing verifiable proof of why an AI spent funds, while SentinelEscrow automatically protects the agent via an SLA Oracle that refunds payments if the destination API fails to deliver.
+AXIOM bridges this gap by intercepting x402 responses and executing a rigorous 11-step pipeline built on Algorand Smart Contracts. It enforces strict mathematical spending policies, AI-powered semantic API routing to prevent budget overflow, and multi-dimensional anomaly detection. Every transaction is anchored to the Algorand Testnet with an immutable **Reasoning Receipt**, providing verifiable proof of why an AI spent funds, while SentinelEscrow automatically protects the agent via an SLA Oracle that refunds payments if the destination API fails to deliver. Furthermore, AXIOM features a built-in Red Team CLI simulator, allowing operators to automatically self-test their entire configuration against advanced attack vectors prior to deployment.
 
 ---
 
